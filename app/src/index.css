@@ -1,0 +1,886 @@
+:root {
+  --font-body: Calibri, Carlito, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: var(--font-body);
+  --accent: #b6ff1a;
+  --accent-dark: #8fd400;
+  --on-accent: #0f1a00;
+  --danger: #ff4d4d;
+  --danger-dark: #d92d2d;
+  --domain-coral: #e25534;
+  --domain-purple: #8b5cf6;
+  --domain-teal: #14b8a6;
+  --domain-pink: #ec4899;
+  --domain-amber: #f59e0b;
+  --domain-green: #22c55e;
+  --domain-blue: #3b82f6;
+  --card-radius: 16px;
+  --surface: #1c1c1c;
+  --card-border-color: #333;
+  --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --text-primary: #f2f2f2;
+  --text-muted: #9a9a9a;
+  font: 400 16px/1.5 var(--font-body);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #0e0e0e;
+  color: var(--text-primary);
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Every domain-colored surface derives its color from the single
+   --domain-* token set above via colorForDomain() — never hardcode a hex
+   value here. */
+.card-color-coral { --domain-color: var(--domain-coral); }
+.card-color-purple { --domain-color: var(--domain-purple); }
+.card-color-teal { --domain-color: var(--domain-teal); }
+.card-color-pink { --domain-color: var(--domain-pink); }
+.card-color-amber { --domain-color: var(--domain-amber); }
+.card-color-green { --domain-color: var(--domain-green); }
+.card-color-blue { --domain-color: var(--domain-blue); }
+
+[class*='card-color-'] {
+  background: color-mix(in srgb, var(--domain-color) 16%, white);
+  border-color: color-mix(in srgb, var(--domain-color) 45%, white);
+  color: color-mix(in srgb, var(--domain-color) 65%, black);
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+.page-card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: none;
+  padding: 14px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn-primary:hover {
+  background: var(--accent-dark);
+}
+
+.btn-secondary {
+  background: var(--surface);
+  border: 1px solid var(--card-border-color);
+  color: var(--text-primary);
+  box-shadow: var(--card-shadow);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Welcome screen */
+.welcome-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 16px;
+  padding: 24px;
+}
+
+.welcome-logo {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.welcome-tagline {
+  color: var(--text-muted);
+  max-width: 320px;
+  margin: 0 0 12px;
+}
+
+/* Auth (sign up / log in) */
+.auth-logo {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.auth-tagline {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: -12px 0 8px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.text-input {
+  padding: 12px 14px;
+  border-radius: var(--card-radius);
+  border: 1px solid var(--card-border-color);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.text-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.form-error {
+  color: var(--danger);
+  font-size: 14px;
+  margin: 0;
+}
+
+.form-success {
+  color: color-mix(in srgb, var(--domain-green) 65%, black);
+  font-size: 14px;
+  margin: 0;
+}
+
+.text-link-button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  align-self: center;
+}
+
+/* Home screen */
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-branding {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.home-logo {
+  font-weight: 700;
+  font-size: 20px;
+}
+
+.home-tagline {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.home-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logout-link {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.streak-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: color-mix(in srgb, var(--domain-amber) 16%, white);
+  border: 1px solid color-mix(in srgb, var(--domain-amber) 45%, white);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.tier-badge {
+  align-self: center;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.play-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: none;
+  border-radius: var(--card-radius);
+  padding: 24px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 20px;
+  font-weight: 700;
+  box-shadow: var(--card-shadow);
+  cursor: pointer;
+}
+
+.play-button:hover {
+  background: var(--accent-dark);
+}
+
+.play-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.stats-row {
+  display: flex;
+  gap: 12px;
+}
+
+.stat-tile {
+  flex: 1;
+  border-radius: var(--card-radius);
+  border: 1px solid var(--card-border-color);
+  box-shadow: var(--card-shadow);
+  background: var(--surface);
+  padding: 16px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.stat-tile-action {
+  cursor: pointer;
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--surface));
+}
+
+.stat-action-hint {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  margin-top: 6px;
+}
+
+.home-nav-link {
+  text-align: center;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-decoration: none;
+  padding: 8px;
+}
+
+/* Word / hangman card */
+.word-card {
+  padding: 28px 24px;
+  border-radius: var(--card-radius);
+  border: 1px solid var(--card-border-color);
+  box-shadow: var(--card-shadow);
+  background: var(--surface);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.word-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.back-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  padding: 0;
+}
+
+.domain-tag {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.session-progress {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.context-sentence {
+  font-style: italic;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.word-blanks {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  justify-content: center;
+  padding: 12px 0;
+}
+
+/* Applied when even the minimum shrink scale can't fit the word on one
+   line (only the longest multi-word entries in the bank hit this) — the
+   row scrolls horizontally instead of ever wrapping to a second line. */
+.word-blanks-scroll {
+  justify-content: flex-start;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.letter-slot {
+  min-width: 24px;
+  flex-shrink: 0;
+  border-bottom: 3px solid var(--text-primary);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.attempts-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.attempt-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.attempt-dot-used {
+  background: #3a3a3a;
+}
+
+.hangman-keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.keyboard-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.key {
+  min-width: 30px;
+  height: 44px;
+  flex: 1;
+  max-width: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border-color);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.key-correct {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.key-wrong {
+  background: #333;
+  border-color: #333;
+  color: #777;
+}
+
+.key:disabled {
+  cursor: default;
+}
+
+/* Reveal panel (post-round, hangman + quiz) */
+.reveal-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+}
+
+.reveal-result {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.reveal-result.won {
+  color: var(--domain-green);
+}
+
+.reveal-result.lost {
+  color: var(--danger);
+}
+
+.reveal-word {
+  font-size: 24px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.reveal-definition {
+  color: var(--text-primary);
+}
+
+.reveal-example {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.reveal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.reveal-actions .btn {
+  flex: 1;
+}
+
+/* Quiz / review screen */
+.filter-toggle {
+  display: flex;
+  border-radius: 999px;
+  border: 1px solid var(--card-border-color);
+  background: var(--surface);
+  padding: 4px;
+}
+
+.filter-toggle button,
+.filter-toggle a {
+  flex: 1;
+  border: none;
+  background: none;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-muted);
+  text-align: center;
+  text-decoration: none;
+}
+
+.filter-toggle button.active,
+.filter-toggle a.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.quiz-word {
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quiz-option {
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: var(--card-radius);
+  border: 1px solid var(--card-border-color);
+  box-shadow: var(--card-shadow);
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.quiz-option.correct {
+  background: color-mix(in srgb, var(--domain-green) 25%, var(--surface));
+  border-color: var(--domain-green);
+}
+
+.quiz-option.incorrect {
+  background: color-mix(in srgb, var(--danger) 25%, var(--surface));
+  border-color: var(--danger);
+}
+
+.quiz-option:disabled {
+  cursor: default;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 16px;
+}
+
+.loading-state {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 16px;
+}
+
+/* My Words table */
+.words-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border-radius: var(--card-radius);
+  border: 1px solid var(--card-border-color);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+
+.words-table th,
+.words-table td {
+  text-align: left;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--card-border-color);
+}
+
+.words-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.words-table tr:last-child td {
+  border-bottom: none;
+}
+
+.words-table td:first-child {
+  text-transform: capitalize;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-pill.status-correct {
+  background: color-mix(in srgb, var(--domain-green) 20%, white);
+  color: color-mix(in srgb, var(--domain-green) 65%, black);
+}
+
+.status-pill.status-incorrect {
+  background: color-mix(in srgb, var(--danger) 20%, white);
+  color: var(--danger-dark);
+}
+
+/* Feedback form */
+.star-rating {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.star {
+  background: none;
+  border: none;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--card-border-color);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.star-filled {
+  color: var(--accent);
+}
+
+.feedback-textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.chip.category-chip {
+  text-transform: none;
+}
+
+/* Quiz category picker / Learn filters */
+.category-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.category-choice .btn {
+  width: 100%;
+}
+
+.filter-group-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin: 4px 0 -4px;
+}
+
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  border-radius: 999px;
+  border: 1px solid var(--card-border-color);
+  background: var(--surface);
+  color: var(--text-primary);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.chip {
+  text-decoration: none;
+}
+
+/* Flashcard etymology + root-family link */
+.etymology-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-dark);
+  margin: 4px 0 -8px;
+}
+
+.etymology-text {
+  font-size: 14px;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border-left: 3px solid var(--accent);
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin: 0;
+  text-align: left;
+}
+
+.root-chip {
+  align-self: center;
+  text-transform: none;
+}
+
+.root-chip-arrow {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Word Family hierarchy view: root morpheme at top, every word sharing it
+   as a branch below, connected by a trunk line + per-branch elbow glyph. */
+.family-tree {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.family-root {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  border: 1px solid var(--accent);
+  border-radius: var(--card-radius);
+  padding: 16px 24px;
+  text-align: center;
+}
+
+.family-root-word {
+  font-size: 22px;
+  font-weight: 700;
+  text-transform: capitalize;
+  margin: 0;
+}
+
+.family-root-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 4px 0 0;
+}
+
+.family-trunk-line {
+  width: 2px;
+  height: 16px;
+  background: var(--card-border-color);
+}
+
+.family-children {
+  width: 100%;
+}
+
+.family-child-word {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--card-border-color);
+  padding: 12px 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: capitalize;
+  cursor: pointer;
+  text-align: left;
+}
+
+.family-child:last-child .family-child-word {
+  border-bottom: none;
+}
+
+.family-connector {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.family-child-definition {
+  padding: 0 4px 14px 30px;
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Quiz completion summary */
+.quiz-complete-score {
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* My Quiz Score history */
+.quiz-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quiz-history-row {
+  border-radius: var(--card-radius);
+  border: 1px solid var(--card-border-color);
+  box-shadow: var(--card-shadow);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.quiz-history-summary {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+}
+
+.quiz-history-summary span:first-child {
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.quiz-history-summary span:last-child {
+  font-weight: 700;
+}
+
+.quiz-history-detail {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quiz-history-word {
+  font-size: 14px;
+  text-transform: capitalize;
+}
+
+.quiz-history-word.correct {
+  color: color-mix(in srgb, var(--domain-green) 65%, black);
+}
+
+.quiz-history-word.incorrect {
+  color: var(--danger);
+}
