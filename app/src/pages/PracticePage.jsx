@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 
 const FORMATS = [
   { label: 'Contextual closest meaning', to: '/quiz' },
-  { label: 'Confusing word pairs' },
+  { label: 'Confusing word pairs', to: '/pairs' },
   { label: 'Word usage errors' },
   { label: 'Odd word out' },
 ]

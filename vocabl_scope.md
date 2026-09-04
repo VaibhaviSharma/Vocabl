@@ -72,18 +72,18 @@ doesn't grow cluttered as more question formats are added:
 
 - **Learn** — passive flashcard exposure mode
 - **Practice** — opens a secondary menu listing individual CAT-native 
-  question formats (Quiz/context-fit cloze now; Confusable Pairs, 
-  Odd-One-Out, and others as they're built)
+  question formats (Quiz/context-fit cloze and Confusing Word Pairs 
+  live now; Word Usage Errors and Odd Word Out as they're built)
 
 New question-type formats get added inside the Practice menu over 
 time, not as new buttons directly on Home.
 
 Per the clickable prototype (`vocabl_prototype_placeholder.html`), the 
 Practice menu shows all four target formats from day one — 
-"Contextual closest meaning" (live, → Quiz), "Confusing word pairs," 
-"Word usage errors," "Odd word out" (the latter three rendered 
-disabled with a "coming soon" label until built) — rather than only 
-listing whatever's currently live.
+"Contextual closest meaning" (live, → Quiz), "Confusing word pairs" 
+(live, → `/pairs`), "Word usage errors," "Odd word out" (the latter 
+two still rendered disabled with a "coming soon" label) — rather than 
+only listing whatever's currently live.
 
 Difficulty tier is an invisible, adaptive layer running underneath 
 whichever format the user is in — it is never a user-facing selector. 
@@ -160,6 +160,35 @@ not currently planned.
   (or a jsonb column — implementation's call)
 - Displayed as "X / Y correct" in quiz history, where Y = 
   `total_words_shown`
+
+### 4. Confusing Word Pairs (done)
+- Format: a sentence with the target word blanked, and exactly 2 
+  options — the word and its commonly-confused partner (e.g., 
+  "The court will ______ the funds. (disburse / disperse)"). Tests 
+  whether the user can tell the pair apart in context, not just 
+  recognize a definition
+- Content lives in its own `confusing_pairs` table (`id`, `word`, 
+  `commonly_confused_with`, `word_meaning`, `confused_meaning`, 
+  `demonstrating_sentence`), separate from `words` — a pair 
+  relationship + one demonstrating sentence is a different shape than 
+  the main word bank, and confusable partners aren't always themselves 
+  present in `words`. Seeded via `generate-confusing-pairs.js` from 
+  `data/confusing_pairs_source.csv`, generating both directions per 
+  source pair (24 seed pairs → 48 rows) in one self-checked API call, 
+  same guardrail pattern as the rest of the content pipeline
+- Entry point: Home → Practice → "Confusing word pairs"
+- No category picker (no tier/wrong-only concept applies here) — a 
+  single "Start" button draws a random 10-pair session from the full 
+  pool
+- Deliberately NOT tied into `user_word_status`, `current_tier`, or 
+  `streak_count` — adaptive difficulty is scoped to Quiz only (see 
+  above). This is a lightweight, self-contained loop: pick the word 
+  that fits, see both meanings, move on. Session start/complete/exit 
+  logged to `user_events` (`confusing_pairs_started`/`completed`/
+  `exited`) for visibility, same as other modes
+- After answering, both words' meanings are shown (not just the 
+  correct one) — the point is learning to distinguish the pair, not 
+  just getting the current question right
 
 ### My Words screen
 - Table/list of every word the user has played (from 
@@ -273,9 +302,10 @@ text rather than isolated recall:
    sentence with the word blanked, pick the word that fits the 
    context
 2. **Confusing Word Pairs** (homophones/homonyms, e.g., disburse vs. 
-   disperse) — same as "Confusable Pairs" already catalogued as next 
-   priority. Buildable as a lightweight table (`word`, 
-   `commonly_confused_with`, a demonstrating sentence).
+   disperse) — **already built** (see Core gameplay modes above): a 
+   `confusing_pairs` table (`word`, `commonly_confused_with`, 
+   `word_meaning`, `confused_meaning`, `demonstrating_sentence`), 24 
+   seed pairs → 48 rows via `generate-confusing-pairs.js`
 3. **Word Usage Errors** (identifying incorrect contextual usage) — 
    same as "Incorrect usage identification" already catalogued: 5 
    sentences per word, 4 correct and 1 subtly wrong, identify the 
@@ -284,10 +314,10 @@ text rather than isolated recall:
    group's meaning) — same as "Odd-one-out" already catalogued: needs 
    words grouped by meaning cluster, not just domain/tier.
 
-These four formats are now the complete, authoritative target set for 
-Vocabl's Practice menu — one is live (Quiz/Contextual Closest Meaning), 
-three remain to be built (Confusing Word Pairs next, then Word Usage 
-Errors, then Odd Word Out). Double-blank cloze and analogy pairs are 
+These four formats are the complete, authoritative target set for 
+Vocabl's Practice menu — two are live (Quiz/Contextual Closest Meaning, 
+Confusing Word Pairs), two remain to be built (Word Usage Errors next, 
+then Odd Word Out). Double-blank cloze and analogy pairs are 
 explicitly out of scope for a CAT-only app.
 
 ## Voice and tone (general app copy)
@@ -417,9 +447,9 @@ tier-driven).
 
 **New, no WordFit equivalent:** login/auth, Learn (flashcard) mode, 
 Word Family/root browsing, quiz history tracking, feedback/rating 
-system, behavior event logging, the context-fit cloze quiz format, and 
-the static batch-generation content pipeline with self-check 
-guardrails.
+system, behavior event logging, the context-fit cloze quiz format, 
+Confusing Word Pairs, and the static batch-generation content pipeline 
+with self-check guardrails.
 
 **Built, then removed:** Hangman (letter-guessing, continuous 10-word 
 sessions, custom keyboard, dynamic attempts) — was WordFit's core 
@@ -443,9 +473,9 @@ CAT-practice identity.
 
 ## Open decisions
 
-1. Whether to build additional question formats beyond Quiz/Learn 
-   (Confusing Word Pairs identified as next-highest priority) and in 
-   what order
+1. Whether to build Word Usage Errors or Odd Word Out next (Word Usage 
+   Errors identified as higher priority, since it's closer to CAT's 
+   actual RC-inference skill)
 2. Whether `tone` domain content gets any distinct visual treatment 
    elsewhere in the app
 3. Whether/when to pursue native app wrapping (Capacitor) vs. staying 
@@ -454,7 +484,7 @@ CAT-practice identity.
 ## Immediate next steps
 
 1. Complete the word bank expansion to 1000 words
-2. Build Confusing Word Pairs as the next Practice-menu format
+2. Build Word Usage Errors as the next Practice-menu format
 3. Run the pre-deployment security/readiness audit
 4. Personally test the app end-to-end; recruit 2-3 private testers 
    (including Android)

@@ -12,6 +12,7 @@ import FeedbackPage from './pages/FeedbackPage'
 import MyWordsPage from './pages/MyWordsPage'
 import QuizPage from './pages/QuizPage'
 import QuizScorePage from './pages/QuizScorePage'
+import ConfusingPairsPage from './pages/ConfusingPairsPage'
 import { useAuth } from './lib/AuthContext'
 
 export default function App() {
@@ -99,6 +100,14 @@ export default function App() {
         element={
           <RequireAuth>
             <QuizPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/pairs"
+        element={
+          <RequireAuth>
+            <ConfusingPairsPage />
           </RequireAuth>
         }
       />
