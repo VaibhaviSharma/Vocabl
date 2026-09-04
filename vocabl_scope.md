@@ -1,150 +1,463 @@
-# Vocabl — MVP Scope Document
+# Vocabl — Scope Document (Updated)
 
 ## What this is
 
-Vocabl is a vocabulary-building web app for CAT (Common Admission Test) aspirants, spun off from the design patterns and architecture built for WordFit. It reuses WordFit's core mechanics (hangman gameplay, dynamic attempt formula, pastel card-based UI, deadpan/internet-savvy persona) while dropping interest-based personalization in favor of a fully static, exam-focused content model.
+Vocabl is a vocabulary-building web app for CAT (Common Admission Test) 
+aspirants, spun off from the design patterns and architecture built for 
+WordFit. It reuses WordFit's core mechanics (game-based active recall, 
+pastel card-based UI, Supabase/React/Vite/Claude API/Vercel stack) while 
+building CAT-specific content, difficulty adaptation, and question 
+formats from scratch.
 
 ## Why CAT, and why this approach
 
-- No app on the App Store is a dedicated, standalone, well-designed CAT-vocab-only product. Existing CAT apps on iOS are full exam-prep suites (quant, DILR, mock tests) with vocabulary buried as one minor feature.
-- Standalone CAT vocab apps exist on the Play Store (Android), but execution is weak — user reviews cite incomplete or outright wrong definitions, no homonym handling, and no real game mechanic (just wordlists with flashcards/MCQs bolted on).
-- This means the gap isn't "no CAT vocab apps exist" — it's "no *good, habit-forming* CAT vocab app exists," on either platform, and especially on iOS.
-- CAT itself does not test vocabulary directly (no synonym/antonym or fill-in-the-blank questions since ~2014). Vocabulary matters indirectly: RC (Reading Comprehension) makes up 65-70% of the VARC section, and not knowing a word in a dense passage slows down reading speed and comprehension, costing time and accuracy on inference questions. Vocabl's honest value prop is "remove word-friction in RC passages," not "ace direct vocab questions."
-- GRE was considered but deprioritized for MVP — it's a more crowded space with decent incumbents (Magoosh, Vocabulary Whiz) already covering it well. CAT has real, if poorly-served, demand.
-- The architecture keeps exam type as a filter/mode on a shared word-serving system rather than a forked codebase, so GRE (or other exams) can be added later without a rebuild.
+- No app on the App Store is a dedicated, standalone, well-designed 
+  CAT-vocab-only product. Existing iOS CAT apps are full exam-prep 
+  suites (quant, DILR, mock tests) with vocabulary as one minor buried 
+  feature.
+- Standalone CAT vocab apps exist on the Play Store, but execution is 
+  weak — incomplete or wrong definitions, no homonym handling.
+- CAT has no standalone or direct vocabulary section. Vocabulary is 
+  tested indirectly and contextually within VARC, heavily influencing 
+  the ability to decode dense academic reading passages, identify the 
+  author's tone, and solve paragraph summaries. Direct vocabulary 
+  formats (synonyms, antonyms, analogies) are reserved for OMETs 
+  (Other Management Entrance Tests — XAT, SNAP, NMAT, CMAT), not CAT. 
+  This distinction matters directly for Vocabl's scope: since Vocabl is 
+  CAT-only, only formats relevant to CAT's actual contextual-inference 
+  style belong in the Practice menu (see Additional CAT-relevant 
+  question formats section).
+- **Positioning pivot (supersedes an earlier direction):** Vocabl was 
+  originally built around Hangman as its core mechanic — a game-based 
+  active-recall loop intended as a genuine competitive differentiator, 
+  since no CAT app has a real game mechanic. This has been deliberately 
+  reconsidered. Vocabl's identity is now an **authentic CAT practice 
+  app**: question formats drawn directly from real CAT-prep coaching 
+  material (context-fit cloze, confusable pairs, odd-one-out, 
+  incorrect-usage identification, analogies), not a vocabulary game 
+  that happens to be CAT-flavored. Hangman is removed. The 
+  differentiation shifts from "the only fun CAT vocab app" to "the only 
+  well-executed, genuinely CAT-native practice app" — still a real 
+  differentiator given how weak execution is across existing CAT apps 
+  (wrong definitions, no homonym handling, no context-based practice), 
+  just a different axis than a game mechanic.
+- Positioning must stay honest about what CAT actually tests: these 
+  formats train the underlying reading/inference skill CAT's current 
+  RC/tone/para-completion questions depend on. They should not be 
+  marketed as literally replicating a real CAT question type, since 
+  the exam itself doesn't ask isolated vocabulary questions anymore — 
+  the framing is "practice in the same style CAT coaching material 
+  uses to build this skill," which is accurate.
+- GRE was considered and deprioritized for MVP in favor of CAT.
 
 ## Platform strategy
 
-- Build as a web app (React + Vite) first, deployed to Vercel via GitHub — same playbook as WordFit.
-- Defer native app-store presence (iOS/Android) until the web MVP validates engagement.
-- A web-first approach also sidesteps testing constraints (no Android device on hand) — Android testing can happen via emulator (Android Studio AVD) or Chrome DevTools device emulation, with cloud device testing (Firebase Test Lab, BrowserStack) as a pre-launch check on real hardware, particularly for performance on lower-end/budget Android devices common among the CAT audience.
-- Platform prioritization (iOS vs. Android vs. both) will be decided later based on actual usage data from the web MVP, not guessed upfront.
+- Web app (React + Vite), deployed to Vercel via GitHub, same playbook 
+  as WordFit.
+- PWA support planned (installable, "Add to Home Screen") to reduce 
+  daily-open friction without committing to native app-store 
+  distribution or review cycles.
+- Native app wrapping (Capacitor, for Android/iOS store presence) is 
+  explicitly deferred until the web MVP has validated engagement — 
+  revisit once there's real usage data on device/browser mix and 
+  retention.
+- Testing approach: since this is a web app, testing on mobile means 
+  opening the live Vercel URL on real phones (own device + at least one 
+  Android tester), not emulators or app-store tooling.
 
-## MVP scope
+## Navigation structure
 
-**In scope:**
-- CAT vocabulary only (no GRE, no exam-selector)
-- Web app, no native wrapping yet
-- Onboarding: welcome screen → straight into play (no interest picker, no calibration quiz, no exam selector)
-- Hangman as the core "first encounter" game mechanic, with dynamic attempt count based on word tier
-- Adaptive difficulty via a rolling success-rate window, no upfront calibration quiz
-- Every word tracked with a single correct/incorrect status per user, set on first attempt and overwritten by any later attempt (hangman or quiz)
-- MCQ-based review/quiz mode, filterable by All or Incorrect-only
-- Fully static, pre-generated word content (no live LLM calls during gameplay)
+Home has two primary entry points, kept deliberately small so it 
+doesn't grow cluttered as more question formats are added:
 
-**Explicitly out of scope for v1:**
-- Interest-based personalization (dropped — adds complexity without a clear CAT-specific benefit; the differentiation for Vocabl is the mechanic + content quality + habit loop, not personalization)
-- Calibration quiz at onboarding (may be added later if data shows a need; tiering + adaptive difficulty should self-correct within the first session or two)
-- Full attempt-history tracking (only last-result-wins for now; can be layered on later without breaking the schema)
-- GRE support
-- Native iOS/Android apps
-- CAT-specific content types beyond single/multi-word vocabulary (e.g., one-word substitutions, idioms) — possible v2 addition
+- **Learn** — passive flashcard exposure mode
+- **Practice** — opens a secondary menu listing individual CAT-native 
+  question formats (Quiz/context-fit cloze now; Confusable Pairs, 
+  Odd-One-Out, and others as they're built)
 
-## Core gameplay loop
+New question-type formats get added inside the Practice menu over 
+time, not as new buttons directly on Home.
 
-1. **New word encounter (Hangman):** User is served a word based on their current difficulty tier (see Adaptive Difficulty below). They guess letters via a custom on-screen keyboard (not the native device keyboard, for visual consistency and input control). A hint is available on request. Dynamic attempt count scales with word tier — harder words allow more attempts.
-2. **Post-round:** Word's definition and example sentence are shown regardless of outcome. Result (correct/incorrect) is logged.
-3. **Review (Quiz mode):** User can revisit any previously-played word via a fast multiple-choice quiz (word → 4 definitions, 1 correct), filterable to see All words played or Incorrect-only. This is the "cramming" mode — faster and less time-intensive than hangman, meant for reinforcement rather than first-encounter learning.
+Per the clickable prototype (`vocabl_prototype_placeholder.html`), the 
+Practice menu shows all four target formats from day one — 
+"Contextual closest meaning" (live, → Quiz), "Confusing word pairs," 
+"Word usage errors," "Odd word out" (the latter three rendered 
+disabled with a "coming soon" label until built) — rather than only 
+listing whatever's currently live.
 
-## Adaptive difficulty
+Difficulty tier is an invisible, adaptive layer running underneath 
+whichever format the user is in — it is never a user-facing selector. 
+Users choose *what skill/format* to practice; the app quietly manages 
+*how hard* within that.
 
-- Each user has a `current_tier` (1-5) per account, starting at tier 1.
-- Word serving uses a weighted mix: ~70% current tier, ~20% one tier below (reinforcement), ~10% one tier above (stretch/preview).
-- A rolling window of the last ~10 words played tracks success rate. Consistently high success (e.g., 80%+, low attempt usage) bumps `current_tier` up by one. Consistent struggle (e.g., below 40-50% success, frequent max-attempt usage) steps it down.
-- This replaces the need for an upfront calibration quiz — the tier data model (per-word difficulty tag) is designed so a real calibration step could be added later without changing the underlying schema.
+## Core gameplay modes (current)
 
-## Word status tracking
+### 1. Learn (flashcards)
+- Passive, self-paced, no scoring, no pressure
+- Word shown, tap/reveal to see back: `correct_definition`, then 
+  `etymology` (labeled distinctly, e.g., "Origin"), a tappable 
+  root/family chip, then `example_sentence`
+- Filterable by tier and/or domain before starting a session
+- Session pattern: up to 10 words, progress indicator, back/exit 
+  control available at any point
+- Does NOT write to `user_word_status` — viewing is exposure, not an 
+  attempt. Logged instead to a separate `word_views` table 
+  (`user_id`, `word_id`, `viewed_at`)
 
-- Each (user, word) pair has a single `status` field: correct or incorrect.
-- Set on the first hangman attempt. Overwritten by any subsequent attempt, whether in hangman (replay) or quiz mode.
-- No attempt-count or history log in v1 — this is a deliberate simplification. A richer history table can be added later as a superset of this model without breaking existing data.
-- This status field powers both the Quiz mode's Incorrect-only filter and (eventually) tier-advancement logic.
+### 2. Hangman — REMOVED (done)
 
-## Content model (fully static)
+Hangman (letter-guessing with dynamic attempts, continuous 10-word 
+sessions) was the original core mechanic and genuine game-based 
+differentiator, but has been removed as part of the pivot to an 
+authentic CAT-practice identity (see positioning note above). The 
+screens, routes (`/play`), and session logic (`HangmanRoundPage.jsx`, 
+`HangmanRound.jsx`, `Keyboard.jsx`) are deleted from the codebase, not 
+just deprioritized. `maskWord.js` (sentence-blanking) and 
+`adaptiveTier.js` (`applyRoundResult`/tier progression) survive — both 
+are now used by Quiz instead, which took over Hangman's former role of 
+driving `current_tier`, `streak_count`, and `words_played` on every 
+answer, since nothing else populated those fields once Hangman was 
+gone. If Hangman is reintroduced later, it would likely return as an 
+optional/secondary "warm-up" mode rather than the primary mechanic — 
+not currently planned.
 
-Every word is pre-generated once via an LLM + web search batch pipeline and stored in the database — no live generation during gameplay, for cost control, quality consistency, and latency reasons.
+### 3. Quiz (context-fit cloze)
+- Format: a sentence (the word's `example_sentence`, blanked) is shown, 
+  with the target word as one of 5 multiple-choice word options — the 
+  user selects which word correctly completes the sentence
+- This replaced an earlier design where the quiz showed a bare word and 
+  4 definition options. The cloze format was adopted because it tests 
+  context-inference (the actual skill CAT's current RC/tone/para-
+  completion questions depend on) rather than isolated definition 
+  recognition, which Learn mode already covers
+- Distractor options are other real words from the word bank, filtered 
+  to match the target word's part of speech (see schema note below) so 
+  wrong answers can't be eliminated by grammar alone
+- Entry point: primarily Home → Practice → "Contextual closest 
+  meaning" (matching the target nav structure); also still reachable 
+  from My Words via its existing "Generate Quiz" button. Either way, 
+  lands on the same category picker: "All words" or "Only wrong" 
+  (words currently flagged incorrect in `user_word_status`)
+- "All words" draws a fresh, tier-adaptive 10-word session directly 
+  from the `words` table (the same weighted-tier selection Hangman 
+  used to drive) rather than only words already in 
+  `user_word_status` — otherwise a brand-new user with no attempt 
+  history would have nothing to quiz on. "Only wrong" is unchanged: 
+  it reads the user's full current incorrect set, no session cap
+- Word order and answer-option order are both randomized every time
+- On selecting an answer, `user_word_status` updates accordingly (same 
+  upsert logic used elsewhere), and — regardless of category — 
+  `current_tier`/`streak_count`/`words_played` update the same way 
+  Hangman rounds used to (via the same `applyRoundResult` function), 
+  since Quiz is now the only mode that drives adaptive difficulty
+- Early exit is supported: if the user leaves before finishing, the 
+  attempt still counts. `total_words_shown` reflects how many words the 
+  user actually reached, not the original category size, and only 
+  answered words get logged results
+- Every quiz attempt (finished or exited early) is logged to 
+  `quiz_attempts` (`id`, `user_id`, `taken_at`, `category`, 
+  `total_words_shown`) with per-word results in `quiz_attempt_results` 
+  (or a jsonb column — implementation's call)
+- Displayed as "X / Y correct" in quiz history, where Y = 
+  `total_words_shown`
 
-**Per-word schema:**
+### My Words screen
+- Table/list of every word the user has played (from 
+  `user_word_status`), each row showing the word and its current 
+  correct/incorrect status
+- "Generate Quiz" button, entry point into Quiz mode above
+
+### My Quiz Score tab
+- Tabular history of past quiz attempts: date/time, category (All / 
+  Wrong only), score ("X / Y correct"), expandable to full word-by-
+  word breakdown
+- Sorted most recent first
+- Purely additive/historical — never overwritten, distinct from 
+  `user_word_status` which only reflects the latest state per word
+
+## Adaptive difficulty (driven by Quiz only, invisible to the user)
+
+- Each user has a `current_tier` (1-5), starting at tier 1
+- Word serving uses a weighted mix: ~70% current tier, ~20% one tier 
+  below, ~10% one tier above — this weighting picks Quiz's "All words" 
+  session, not Learn (Learn is filtered by the user's own tier/domain 
+  choice, not tier-weighted)
+- A rolling window of the last ~10 words *answered in Quiz* tracks 
+  success rate; high success bumps `current_tier` up, low success 
+  steps it down. Learn never touches this — viewing a flashcard is 
+  exposure, not a graded attempt
+- No calibration quiz — this self-corrects within the first Quiz 
+  session or two of use
+
+## Word content schema (current)
+
 | Field | Description |
 |---|---|
-| `word` | The vocabulary word or short phrase |
-| `tier` | Difficulty tier, 1 (common) to 5 (obscure) |
+| `word` | The vocabulary word (single-word only, v1) |
+| `tier` | Difficulty, 1 (common) to 5 (obscure) |
 | `correct_definition` | Plain, register-neutral definition |
-| `distractor_definitions` | 3 plausible-but-wrong definitions, same register as the correct one, avoiding the homonym trap (i.e., not accidentally another valid sense of the same word) |
-| `hints` | Array of 3-4 pre-generated hint variants, dry/internet-savvy tone (one cultural reference max per hint, no forced slang). At runtime, the app picks one at random each time the word is served, so a word doesn't feel identical on repeat encounters — bounded variety, not live generation. |
-| `example_sentence` | Grounded, RC-passage-register usage example (shown post-round, not personalized) |
-| `source_domain` | Subject tag (see Word sourcing below) |
+| `distractor_definitions` | 3 plausible-but-wrong definitions (used historically for the original quiz format; may still be used elsewhere, e.g., odd-one-out or future formats — no longer the primary quiz mechanism) |
+| `example_sentence` | Editorial/RC-register usage sentence — abstract/institutional subject matter, one sentence, no casual/narrative framing. Used blanked-out as the Quiz cloze sentence. For `tone`-domain words specifically, this should model argumentative/evaluative prose (a writer taking a stance), matching the real "author's tone" RC question type |
+| `root` | Normalized root morpheme (e.g., "dogma"), consistent spelling across every word sharing that root — this is the join key for Word Family browsing |
+| `root_meaning` | Short meaning of the root |
+| `root_language` | Origin language (Greek, Latin, etc.) |
+| `etymology` | 1-2 sentence memory-bridge narrative connecting root to current meaning |
+| `source_domain` | Subject tag: Philosophy, Economics, Science, Psychology, Sociology, Politics, Literature, Environment, Tone, General |
+| `part_of_speech` | One of noun/verb/adjective/adverb, matching how the word is used in its own `example_sentence`. Backfilled for all existing words (`generate-part-of-speech.js`) and generated for new words in the same call as everything else. Used to filter grammatically-matched distractor words for the Quiz cloze format |
 
-**Generation guardrail:** each generated word's MCQ set gets a self-check pass ("is exactly one of these four options unambiguously correct") before being accepted — this directly targets the wrong-definition/ambiguous-homonym quality problems seen in existing weak competitor apps.
+**Generation guardrail:** every word's content generation includes a 
+self-check pass (exactly one unambiguous correct answer; no accidental 
+homonym conflicts; confident, non-fabricated etymology/root). Failures 
+are logged to `needs_review.csv` rather than silently accepted.
 
-**Why hints are an array, not a live call:** early on we considered generating hints live per-play for more variety, but that reopens the cost/latency/quality risks the static-content approach was designed to avoid (runtime cost scaling with success on a free app, visible wait mid-round, unvetted content shipping straight to users). Pre-generating 3-4 variants per word in the same batch call — then randomly rotating at runtime — gets most of the "doesn't feel identical every time" benefit at effectively zero marginal cost, since it's still just a database read at play time. One-time generation cost for the full ~293-word seed list, including 4 hint variants each, is roughly $3-5 total (Claude API, Sonnet pricing) — a one-time cost, not a recurring per-play cost.
+## Word Family browsing (new module)
 
-## Voice and tone
+- Given a word, users can see other words in the database sharing the 
+  same `root` value
+- Entry point: a tappable root/meaning chip on the flashcard back (Learn 
+  mode)
+- Read-only reference list, no scoring/attempts logged
+- Handles the case of a root with no siblings gracefully (message, not 
+  an empty broken state)
+- Root normalization consistency (same root spelled identically across 
+  every word that shares it) is critical for this to work and should be 
+  spot-checked after any content generation batch
 
-Hints and (to a lesser degree) example sentences use the same "deadpan internet-friend" persona established for WordFit, generalized from individual-interest-based to a broadly "extremely online" register.
+## Word sourcing and current word count
 
-**Rules:**
-- One internet-culture reference per hint, maximum — avoid stacking references, which reads as try-hard
-- No forced slang — dry/observational tone ages better than actively "using" slang terms
-- Sentences stay grounded and realistic, not jokey — personality lives in the hint, not the sentence, since the sentence also needs to function as a plausible academic/journalistic usage example
+- No official CAT vocabulary list exists (same situation as GRE). 
+  Community-converged lists come from coaching institutes and recurring 
+  editorial vocabulary.
+- Real sources identified for sourcing/cross-referencing: Cracku's CAT 
+  word list (root-word emphasis), the Arun Sharma CAT Prep list on 
+  Vocabulary.com (pulled from a widely-used coaching book — high-trust 
+  source for word *selection*, though Vocabl generates its own 
+  definitions/sentences rather than reusing theirs), Hitbullseye's 
+  cross-exam 1000-word list, Toprankers' 2026 context-based vocabulary 
+  material. Some available lists (e.g., older "CAT 2010" PDFs) are 
+  dated and should be filtered for continued relevance rather than 
+  imported wholesale.
+- Current word bank: 298 words
+- In progress: expansion to 1000 words total, sourced with web search 
+  for real CAT-relevant frequency signal (not just model recall), 
+  deduplicated against the existing database, maintaining proportional 
+  domain balance and a healthier tier distribution (existing bank 
+  skews tier 3-4; expansion should skew more toward tiers 1-2 to 
+  support the adaptive difficulty mix properly for newer users)
+- Estimated one-time cost for the 1000-word expansion: roughly $7-10 
+  (Claude API, Sonnet pricing), consistent with the ~$0.01/word cost 
+  structure of the original batch
 
-**Examples locked in during design:**
-- *dogmatic* — hint: "main character energy but for opinions. zero flexibility, all confidence."
-- *ephemeral* — hint: "basically an Instagram story. gone before you can screenshot it."
-- *obfuscate* — hint: "corporate email speak for 'we're hiding something.'"
-- *gregarious* — hint: "the friend who talks to strangers in line and somehow gets their number."
+## Additional CAT-relevant question formats
 
-## Word sourcing
+**Important clarification on scope:** CAT has no standalone or direct 
+vocabulary section — vocabulary is tested indirectly and contextually 
+within VARC, influencing the ability to decode dense passages, 
+identify author's tone, and solve paragraph summaries. Direct 
+vocabulary formats (synonyms, antonyms, analogies) belong to OMETs 
+(Other Management Entrance Tests — XAT, SNAP, NMAT, CMAT), not CAT 
+itself. Since Vocabl is scoped as CAT-only (see MVP scope), **analogy 
+pairs are out of scope** — that format is OMET-specific and doesn't 
+belong in an authentic CAT-practice app. If Vocabl ever expands beyond 
+CAT to cover OMETs, analogies would become relevant then, not before.
 
-CAT has no official vocabulary list (same situation as GRE). Community-converged lists exist via coaching institutes (CATKing and similar) and recurring editorial vocabulary (The Hindu, LiveMint, The Economist). Research shows CAT RC passages draw roughly 65-75% of their difficult vocabulary from a consistent set of subject domains.
+When direct vocabulary is tested in CAT practice sets (as a training 
+exercise for the underlying skill, not because the real exam asks 
+these questions), it follows four primary styles. The current exam 
+pattern prioritizes contextual inference over rote memorization, so 
+all four formats should lean on deducing meaning from surrounding 
+text rather than isolated recall:
 
-**Domains used for sourcing and tagging (`source_domain`):**
-Philosophy, Economics, Science, Psychology, Sociology, Politics, Literature, Environment, Tone (attitude/emotion vocabulary — see below), and General (high-frequency, cross-register words not tied to a specific subject).
+1. **Contextual Closest Meaning** (synonym based on a sentence) — 
+   **already built**, this is what the Quiz (cloze) format does: a 
+   sentence with the word blanked, pick the word that fits the 
+   context
+2. **Confusing Word Pairs** (homophones/homonyms, e.g., disburse vs. 
+   disperse) — same as "Confusable Pairs" already catalogued as next 
+   priority. Buildable as a lightweight table (`word`, 
+   `commonly_confused_with`, a demonstrating sentence).
+3. **Word Usage Errors** (identifying incorrect contextual usage) — 
+   same as "Incorrect usage identification" already catalogued: 5 
+   sentences per word, 4 correct and 1 subtly wrong, identify the 
+   wrong one. More generation-intensive, stricter self-check needed.
+4. **Odd Word Out** (thematic exclusion — which word doesn't share the 
+   group's meaning) — same as "Odd-one-out" already catalogued: needs 
+   words grouped by meaning cluster, not just domain/tier.
 
-**Tone as a distinct domain:** CAT RC frequently tests inference about authorial tone/attitude (e.g., "the author's tone toward X is best described as ___"). This is a functionally distinct vocabulary category from subject-matter words, so it's tracked as its own domain rather than folded into General.
+These four formats are now the complete, authoritative target set for 
+Vocabl's Practice menu — one is live (Quiz/Contextual Closest Meaning), 
+three remain to be built (Confusing Word Pairs next, then Word Usage 
+Errors, then Odd Word Out). Double-blank cloze and analogy pairs are 
+explicitly out of scope for a CAT-only app.
 
-**Seed list status:** a 293-word candidate list has been compiled across all 10 domains (`vocabl_source_wordlist.csv`), with a rough tier estimate per word. This is an input to the batch-generation pipeline, not the final database — actual tier assignment gets refined during generation, and the list can be expanded incrementally post-launch using the same sourcing approach.
+## Voice and tone (general app copy)
 
-**Domain breakdown (final, v1 seed list):** general 74, philosophy 30, economics 27, science 27, psychology 25, literature 25, politics 25, sociology 23, tone 20, environment 17.
+The "deadpan internet-friend" persona, generalized from WordFit's 
+individual-interest-based version to a broadly "extremely online" 
+register, is no longer used for in-round hints (superseded by the 
+context-blank hint). It remains available for other app copy — streak 
+messages, empty states, milestone moments.
 
-**Multi-word entries — resolved:** v1 is single-word only. Hangman's core mechanic (guess letters to reveal one word) doesn't extend cleanly to multi-word phrases, and the affected terms were a small slice of the list (~15 of the original 307). Most were dropped without losing conceptual coverage, since a single-word equivalent already existed elsewhere in the list (e.g., "paradigm shift" → "paradigm," "systemic inequality" → "systemic," "environmental externalities" → "externality"). One genuine gap — "cognitive dissonance" — was replaced with the single word "dissonance" to preserve the concept. Removed entries: opportunity cost, game theory, invisible hand, purchasing power, paradigm shift, cognitive dissonance, normative claims, regulatory oversight, systemic inequality, institutional frameworks, ecological footprint, carbon neutral, fossil fuel, greenhouse effect, environmental externalities.
+**Rules:** one internet-culture reference at a time maximum, no forced 
+slang, dry and understated rather than jokey.
 
-## Content generation pipeline
+**Illustrative examples (originally written as hint content, now 
+reference for general voice only):**
+- *dogmatic* — "main character energy but for opinions. zero 
+  flexibility, all confidence."
+- *ephemeral* — "basically an Instagram story. gone before you can 
+  screenshot it."
 
-1. **Input:** the seed word list (CSV), organized by domain and rough tier.
-2. **Batch script:** loops through each word, makes one Claude API call per word to generate the full row (`correct_definition`, `distractor_definitions`, `hint`, `example_sentence`, refined `tier`), including the self-check guardrail.
-3. **Output:** writes each validated row directly into the Supabase `words` table.
-4. **QA:** words failing the self-check are logged separately for manual review or regeneration; a spot-check sample (~10%) of passing words is manually reviewed before considering the batch launch-ready.
-5. **Ongoing:** the same script can be re-run periodically to expand the word bank, since this is a growing content pipeline rather than a one-time fixed batch.
+Etymology content specifically should stay genuinely informative rather 
+than voiced/jokey — it works as a mnemonic because it's real and clear.
 
-This script should be built as a reusable tool (not a one-off/throwaway), since the word bank is expected to grow over time.
+## Authentication and user data
 
-## Tech stack (reused from WordFit)
+- Login required before play (email + password, via Supabase Auth — no 
+  custom credential storage)
+- Welcome screen → Sign Up / Log In (single screen, toggle between 
+  modes) → Home
+- Session persists across visits; basic logout available
+- Password reset via Supabase Auth's built-in flow
+- **Name field**: collected at signup, shown but optional (not 
+  required) — stored as null if skipped, with graceful fallback 
+  anywhere a name would be displayed
+- **This reintroduces onboarding friction** that the original MVP 
+  scope deliberately avoided (originally: welcome → play, zero 
+  friction). This was a deliberate tradeoff to enable cross-session/
+  cross-device progress persistence and behavior logging — worth 
+  watching signup drop-off once real usage data comes in
+- All user-data tables use real Supabase Auth `user_id` 
+  (`auth.uid()`), not an anonymous/session-based scheme
+- Row Level Security (RLS) must be enabled and correctly scoped (per-
+  user access only) on every table containing user data before public 
+  launch — this is a pre-deployment audit item, not optional
 
-React (Vite) + Supabase (DB, auth) + Claude API (content generation) + Vercel (deployment via GitHub).
+## Feedback and rating
 
-## UI direction
+- Accessible any time via a settings/profile menu (not gated behind a 
+  specific screen, not forced after a session)
+- Form includes: a standalone 1-5 star rating (submittable alone, no 
+  other fields required), a category selector (e.g., "Loved 
+  something" / "Something's missing" / "Found a bug" / "Other"), and 
+  free-text message — all three independently optional, but at least 
+  one must be filled before submit is enabled
+- Stored in a `feedback` table (`id`, `user_id`, `rating`, `category`, 
+  `message`, `created_at`)
+- Submission logged as a `feedback_submitted` event
 
-Same pastel, card-based visual system as WordFit, repurposed (not personalized/interest-colored):
-- Home screen: daily word card, streak counter, quick stats (words played, words to review)
-- Hangman round screen: hint card (one randomly-selected variant from the word's `hints` array shown per encounter), letter-reveal row, custom on-screen keyboard (not native device keyboard — for visual consistency, guessed-letter graying, and input validation), tier/domain tag
-- "My Words" / review screen: quiz mode entry point with All / Incorrect-only filter
+## Behavior logging
 
-## What's reused vs. rebuilt from WordFit
+A `user_events` table captures usage patterns, separate from the 
+result-tracking tables:
 
-**Reused directly:** hangman component and dynamic attempt formula, custom keyboard pattern, card-based layout and pastel visual system, persona/voice generation approach, full tech stack and deployment flow.
+Schema: `id`, `user_id`, `event_type`, `event_data` (jsonb), 
+`created_at`
 
-**Reused as a pattern, not literal code:** word-serving logic (same category of system — intelligent word selection — but CAT's tier-driven adaptive logic is a different implementation from WordFit's interest-driven selection).
+Events logged include: `signup`, `login`, `quiz_started`, 
+`quiz_completed` (with `exited_early` flag), `learn_session_started`, 
+`learn_session_completed`/`exited`, `screen_viewed`, 
+`feedback_submitted`. Historical rows also contain hangman-era event 
+types (`hangman_round_started`, `hangman_round_completed`, and 
+hangman's own `session_started`/`session_completed`/`session_exited`) 
+from before Hangman was removed — those types are no longer emitted, 
+but old rows are left in place rather than deleted.
 
-**New, no WordFit equivalent:** MCQ review/quiz mode with All/Incorrect filtering, the static batch-generation content pipeline (WordFit generates content live per-user; Vocabl requires one-time/periodic batch generation instead).
+This is queried directly in Supabase for analysis (DAU/WAU, drop-off 
+points, mode usage) — no admin dashboard built yet.
 
-## Open decisions before build
+### DAU / WAU
 
-1. Whether `tone` gets a distinct visual/UI treatment or is treated identically to subject domains
-2. Final review and expansion of the 293-word seed list once run through the generation pipeline
+Computed via `count(distinct user_id)` against `user_events` for a 
+given day (DAU) or trailing 7-day window (WAU) — deduplication by user 
+is what prevents one highly active user from inflating the count. A 
+Supabase view can be created for convenience (e.g., 
+`daily_active_users`) rather than re-writing the query each time. 
+DAU/WAU ratio is a useful derived stickiness metric given the app's 
+core bet is daily-habit formation.
+
+## Tech stack
+
+React (Vite) + Supabase (DB, auth) + Claude API (content generation, 
+offline/batch only — never called live from the deployed app) + Vercel 
+(deployment via GitHub, auto-deploys on push to main).
+
+Vocabl has its own GitHub repo (`VaibhaviSharma/Vocabl`, public) — it 
+was originally committed inside WordFit's `Fivewords` monorepo, then 
+split out into its own history and repo since the two apps have 
+separate release cadences and don't share deployment.
+
+## Pre-deployment checklist
+
+- No hardcoded secrets anywhere in the codebase; all keys via 
+  environment variables, set both locally (`.env`, gitignored) and in 
+  Vercel's project settings
+- RLS enabled and correctly scoped on all user-data tables; `words` 
+  table readable by authenticated users but not writable by them 
+  (writes only via the batch-generation script using a service role 
+  key)
+- Production build (`npm run build`) runs clean with no errors
+- Auth email flow (confirmation requirement, password reset) confirmed 
+  functional
+- Personal end-to-end test completed (signup, multiple full sessions 
+  across Learn/Practice/Quiz, feedback submission, logout/login) 
+  before any public marketing push
+- Real-device mobile test completed (own phone + at least one Android 
+  tester), not just emulator/DevTools simulation
+
+## What's reused vs. built new from WordFit
+
+**Reused directly:** pastel card-based visual system, general tech 
+stack and deployment flow, general persona/voice approach (for non-
+hint copy).
+
+**Reused as a pattern, not literal code:** the concept of adaptive/
+intelligent word serving (WordFit's is interest-driven; Vocabl's is 
+tier-driven).
+
+**New, no WordFit equivalent:** login/auth, Learn (flashcard) mode, 
+Word Family/root browsing, quiz history tracking, feedback/rating 
+system, behavior event logging, the context-fit cloze quiz format, and 
+the static batch-generation content pipeline with self-check 
+guardrails.
+
+**Built, then removed:** Hangman (letter-guessing, continuous 10-word 
+sessions, custom keyboard, dynamic attempts) — was WordFit's core 
+reused mechanic, since deprecated as part of the pivot to an authentic 
+CAT-practice identity.
+
+## Marketing / go-to-market (planned, not yet executed)
+
+- Free app, optimized for downloads/activity over monetization
+- Primary channels identified: r/CATprep (most active free CAT 
+  aspirant community), personal LinkedIn post (doubles as portfolio 
+  content), CAT-coaching-adjacent Telegram channels (Rodha, 2IIM, 
+  Cracku, VARC1000), and later, direct outreach to coaching institutes 
+  for partnership/referral
+- Sequencing: private test with a few trusted people first (ideally 
+  including at least one Android user) → fix what surfaces → public 
+  posts
+- Positioning must stay honest about what CAT actually tests (RC/tone/
+  para-completion via context, not isolated vocab questions) — avoid 
+  marketing copy that implies the app mimics real CAT question formats
+
+## Open decisions
+
+1. Whether to build additional question formats beyond Quiz/Learn 
+   (Confusing Word Pairs identified as next-highest priority) and in 
+   what order
+2. Whether `tone` domain content gets any distinct visual treatment 
+   elsewhere in the app
+3. Whether/when to pursue native app wrapping (Capacitor) vs. staying 
+   web + PWA long-term — deferred until real usage data exists
 
 ## Immediate next steps
 
-1. Build the batch-generation script (Claude API call per word → Supabase write, with self-check guardrail)
-2. Run the pipeline against the seed list, spot-check output
-3. Build core screens: welcome, home, hangman round, review/quiz mode
+1. Complete the word bank expansion to 1000 words
+2. Build Confusing Word Pairs as the next Practice-menu format
+3. Run the pre-deployment security/readiness audit
+4. Personally test the app end-to-end; recruit 2-3 private testers 
+   (including Android)
+5. Deploy to Vercel
+6. Begin private/soft launch via trusted testers before any public 
+   community post

@@ -106,13 +106,16 @@ Generate the following fields:
 - distractor_definitions: an array of exactly 3 plausible-but-wrong definitions. Each must be the real definition of a *different* real word in a similar register/domain to "${word}" (not a random unrelated concept), so they're genuinely tempting wrong answers. If "${word}" is a homonym with multiple senses, use its primary/most common sense as the correct definition, and do NOT let any distractor accidentally also be a valid definition of "${word}" itself.
 ${exampleSentenceRules(word, domain)}
 - tier: a refined difficulty rating from 1 to 5, using ${roughTier} as a starting anchor but adjusting if it seems off.
+- part_of_speech: exactly one of noun, verb, adjective, adverb — whichever matches how "${word}" is functioning in the example_sentence you write above.
 ${etymologyRules(word)}
 
-Then self-check your own output: verify that exactly one of the 4 definition options (correct_definition + the 3 distractor_definitions) is unambiguously the correct definition of "${word}", that none of the 3 distractors could also reasonably be considered a correct definition of "${word}", and that the root/etymology (if not null) is historically accurate. Set self_check_passed to true only if all of this holds.
+Then self-check your own output: verify that exactly one of the 4 definition options (correct_definition + the 3 distractor_definitions) is unambiguously the correct definition of "${word}", that none of the 3 distractors could also reasonably be considered a correct definition of "${word}", that part_of_speech genuinely matches the example_sentence's usage, and that the root/etymology (if not null) is historically accurate. Set self_check_passed to true only if all of this holds.
 ${retryNote ? `\n${retryNote}\n` : ''}
 Respond only with valid JSON, no other text, no markdown formatting, no preamble, in exactly this shape:
-{"correct_definition": "...", "distractor_definitions": ["...", "...", "..."], "example_sentence": "...", "tier": 3, "root": "...", "root_meaning": "...", "root_language": "...", "etymology": "...", "self_check_passed": true}`
+{"correct_definition": "...", "distractor_definitions": ["...", "...", "..."], "example_sentence": "...", "tier": 3, "part_of_speech": "noun", "root": "...", "root_meaning": "...", "root_language": "...", "etymology": "...", "self_check_passed": true}`
 }
+
+const VALID_POS = ['noun', 'verb', 'adjective', 'adverb']
 
 function containsExactWord(sentence, word) {
   const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -156,6 +159,7 @@ function parseGeneratedEntry(rawText, word) {
     Number.isInteger(entry.tier) &&
     entry.tier >= 1 &&
     entry.tier <= 5 &&
+    VALID_POS.includes(entry.part_of_speech) &&
     isValidEtymologyShape(entry)
 
   return { entry, valid: structurallyValid && entry.self_check_passed === true }
@@ -239,6 +243,7 @@ async function main() {
         distractor_definitions: entry.distractor_definitions,
         example_sentence: entry.example_sentence,
         source_domain: domain,
+        part_of_speech: entry.part_of_speech,
         root: entry.root,
         root_meaning: entry.root_meaning,
         root_language: entry.root_language,

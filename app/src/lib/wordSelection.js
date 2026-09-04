@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { shuffle } from './shuffle'
 
 const TIER_MIN = 1
 const TIER_MAX = 5
@@ -53,4 +54,32 @@ export async function getNextWord(currentTier, excludeIds = []) {
   // Every word in the bank has already been served — repeats are the only
   // option left, so allow one rather than dead-ending the session.
   return pickRandomWord(allWords)
+}
+
+// Picks `count` random real words for the Quiz cloze format's wrong-answer
+// options. Matching part_of_speech matters: without it, a distractor could
+// be eliminated on grammar alone (e.g. a verb obviously doesn't fit where
+// an adjective is needed) rather than by actually knowing the target
+// word's meaning. Falls back to any part of speech if there aren't enough
+// matches (e.g. part_of_speech is null on older/unbackfilled rows, or a
+// rare part of speech has too few words in the bank).
+export async function fetchDistractorWords(partOfSpeech, excludeId, count) {
+  let candidates = []
+  if (partOfSpeech) {
+    const { data, error } = await supabase
+      .from('words')
+      .select('id, word')
+      .eq('part_of_speech', partOfSpeech)
+      .neq('id', excludeId)
+    if (error) throw error
+    candidates = data
+  }
+
+  if (candidates.length < count) {
+    const { data, error } = await supabase.from('words').select('id, word').neq('id', excludeId)
+    if (error) throw error
+    candidates = data
+  }
+
+  return shuffle(candidates).slice(0, count)
 }

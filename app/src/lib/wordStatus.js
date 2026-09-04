@@ -9,7 +9,7 @@ export async function upsertWordStatus(userId, wordId, status) {
 }
 
 const WORD_FIELDS =
-  'id, word, tier, correct_definition, distractor_definitions, example_sentence, source_domain'
+  'id, word, tier, correct_definition, distractor_definitions, example_sentence, source_domain, part_of_speech'
 
 export async function fetchWordStatuses(userId, filter = 'all') {
   let query = supabase

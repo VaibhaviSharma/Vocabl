@@ -51,14 +51,14 @@ export default function HomePage() {
 
         <span className="tier-badge">Tier {profile.current_tier}</span>
 
-        <button type="button" className="play-button" onClick={() => navigate('/play')}>
-          <span className="play-icon">▶</span>
-          Play
-        </button>
-
         <button type="button" className="play-button" onClick={() => navigate('/learn')}>
           <span className="play-icon">📖</span>
           Learn
+        </button>
+
+        <button type="button" className="play-button" onClick={() => navigate('/practice')}>
+          <span className="play-icon">🎯</span>
+          Practice
         </button>
 
         <div className="stats-row">

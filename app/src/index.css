@@ -321,7 +321,7 @@ button {
   padding: 8px;
 }
 
-/* Word / hangman card */
+/* Word card */
 .word-card {
   padding: 28px 24px;
   border-radius: var(--card-radius);
@@ -370,95 +370,7 @@ button {
   margin: 0;
 }
 
-.word-blanks {
-  display: flex;
-  gap: 8px;
-  flex-wrap: nowrap;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  justify-content: center;
-  padding: 12px 0;
-}
-
-/* Applied when even the minimum shrink scale can't fit the word on one
-   line (only the longest multi-word entries in the bank hit this) — the
-   row scrolls horizontally instead of ever wrapping to a second line. */
-.word-blanks-scroll {
-  justify-content: flex-start;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.letter-slot {
-  min-width: 24px;
-  flex-shrink: 0;
-  border-bottom: 3px solid var(--text-primary);
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.attempts-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.attempt-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--accent);
-}
-
-.attempt-dot-used {
-  background: #3a3a3a;
-}
-
-.hangman-keyboard {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.keyboard-row {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-}
-
-.key {
-  min-width: 30px;
-  height: 44px;
-  flex: 1;
-  max-width: 34px;
-  border-radius: 8px;
-  border: 1px solid var(--card-border-color);
-  background: var(--surface);
-  color: var(--text-primary);
-  font-weight: 600;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.key-correct {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
-}
-
-.key-wrong {
-  background: #333;
-  border-color: #333;
-  color: #777;
-}
-
-.key:disabled {
-  cursor: default;
-}
-
-/* Reveal panel (post-round, hangman + quiz) */
+/* Reveal panel (post-round) */
 .reveal-panel {
   display: flex;
   flex-direction: column;
@@ -473,10 +385,6 @@ button {
 
 .reveal-result.won {
   color: var(--domain-green);
-}
-
-.reveal-result.lost {
-  color: var(--danger);
 }
 
 .reveal-word {
@@ -570,6 +478,11 @@ button {
 
 .quiz-option:disabled {
   cursor: default;
+}
+
+.option-letter {
+  font-weight: 700;
+  margin-right: 4px;
 }
 
 .empty-state {

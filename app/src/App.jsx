@@ -4,7 +4,7 @@ import WelcomePage from './pages/WelcomePage'
 import AuthPage from './pages/AuthPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import HomePage from './pages/HomePage'
-import HangmanRoundPage from './pages/HangmanRoundPage'
+import PracticePage from './pages/PracticePage'
 import LearnPage from './pages/LearnPage'
 import WordFamilyPage from './pages/WordFamilyPage'
 import SettingsPage from './pages/SettingsPage'
@@ -47,10 +47,10 @@ export default function App() {
         }
       />
       <Route
-        path="/play"
+        path="/practice"
         element={
           <RequireAuth>
-            <HangmanRoundPage />
+            <PracticePage />
           </RequireAuth>
         }
       />

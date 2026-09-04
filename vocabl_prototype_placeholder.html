@@ -1,0 +1,129 @@
+<h2 class="sr-only">Clickable prototype of Vocabl's screens with placeholder content: home, practice menu, and the four CAT question formats</h2>
+
+<div style="max-width:380px;margin:0 auto;background:var(--surface-1);border-radius:16px;padding:1rem;">
+
+  <div id="screen-home">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <span style="font-size:16px;font-weight:500;">vocabl</span>
+      <i class="ti ti-user" style="font-size:18px;color:var(--text-secondary);" aria-hidden="true"></i>
+    </div>
+    <button onclick="nav('learn')" style="width:100%;text-align:left;padding:1rem 1.25rem;margin-bottom:10px;background:var(--surface-2);border-radius:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="ti ti-book" style="font-size:20px;" aria-hidden="true"></i>
+        <div>
+          <div style="font-weight:500;font-size:15px;">Learn</div>
+          <div style="font-size:13px;color:var(--text-secondary);">Placeholder subtitle text</div>
+        </div>
+      </div>
+    </button>
+    <button onclick="nav('practice')" style="width:100%;text-align:left;padding:1rem 1.25rem;background:var(--surface-2);border-radius:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="ti ti-target-arrow" style="font-size:20px;" aria-hidden="true"></i>
+        <div>
+          <div style="font-weight:500;font-size:15px;">Practice</div>
+          <div style="font-size:13px;color:var(--text-secondary);">Placeholder subtitle text</div>
+        </div>
+      </div>
+    </button>
+  </div>
+
+  <div id="screen-learn" style="display:none;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <i class="ti ti-arrow-left" onclick="nav('home')" style="font-size:18px;" aria-hidden="true"></i>
+      <span style="font-size:14px;color:var(--text-secondary);">Learn</span>
+    </div>
+    <div class="c-teal" style="background:#E1F5EE;border-radius:12px;padding:2rem 1.25rem;text-align:center;min-height:160px;display:flex;flex-direction:column;justify-content:center;gap:10px;">
+      <div style="font-size:22px;font-weight:500;color:#04342C;">placeholder word</div>
+      <div style="font-size:13px;color:#0F6E56;">Placeholder definition text goes here. Placeholder etymology note.</div>
+    </div>
+    <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:10px;">4 / 10</div>
+  </div>
+
+  <div id="screen-practice" style="display:none;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <i class="ti ti-arrow-left" onclick="nav('home')" style="font-size:18px;" aria-hidden="true"></i>
+      <span style="font-size:14px;color:var(--text-secondary);">Practice</span>
+    </div>
+    <button onclick="nav('cloze')" style="width:100%;text-align:left;padding:0.9rem 1rem;margin-bottom:8px;background:var(--surface-2);border-radius:var(--radius);">
+      <div style="font-weight:500;font-size:14px;">Contextual closest meaning</div>
+      <div style="font-size:12px;color:var(--text-secondary);">Placeholder format description</div>
+    </button>
+    <button onclick="nav('pairs')" style="width:100%;text-align:left;padding:0.9rem 1rem;margin-bottom:8px;background:var(--surface-2);border-radius:var(--radius);">
+      <div style="font-weight:500;font-size:14px;">Confusing word pairs</div>
+      <div style="font-size:12px;color:var(--text-secondary);">Placeholder format description</div>
+    </button>
+    <button onclick="nav('usage')" style="width:100%;text-align:left;padding:0.9rem 1rem;margin-bottom:8px;background:var(--surface-2);border-radius:var(--radius);">
+      <div style="font-weight:500;font-size:14px;">Word usage errors</div>
+      <div style="font-size:12px;color:var(--text-secondary);">Placeholder format description</div>
+    </button>
+    <button onclick="nav('odd')" style="width:100%;text-align:left;padding:0.9rem 1rem;background:var(--surface-2);border-radius:var(--radius);">
+      <div style="font-weight:500;font-size:14px;">Odd word out</div>
+      <div style="font-size:12px;color:var(--text-secondary);">Placeholder format description</div>
+    </button>
+  </div>
+
+  <div id="screen-cloze" style="display:none;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <i class="ti ti-arrow-left" onclick="nav('practice')" style="font-size:18px;" aria-hidden="true"></i>
+      <span style="font-size:14px;color:var(--text-secondary);">Contextual closest meaning</span>
+    </div>
+    <div style="font-size:14px;line-height:1.7;margin-bottom:16px;">Placeholder sentence text with a blank where the target ______ used to be, drawn from an editorial-style passage.</div>
+    <div style="display:grid;gap:8px;">
+      <button style="text-align:left;padding:0.75rem 1rem;">A. placeholder word one</button>
+      <button style="text-align:left;padding:0.75rem 1rem;">B. placeholder word two</button>
+      <button style="text-align:left;padding:0.75rem 1rem;">C. placeholder word three</button>
+      <button style="text-align:left;padding:0.75rem 1rem;">D. placeholder word four</button>
+      <button style="text-align:left;padding:0.75rem 1rem;">E. placeholder word five</button>
+    </div>
+  </div>
+
+  <div id="screen-pairs" style="display:none;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <i class="ti ti-arrow-left" onclick="nav('practice')" style="font-size:18px;" aria-hidden="true"></i>
+      <span style="font-size:14px;color:var(--text-secondary);">Confusing word pairs</span>
+    </div>
+    <div style="font-size:14px;line-height:1.7;margin-bottom:16px;">Select the option where placeholder word A / placeholder word B is used correctly.</div>
+    <div style="display:grid;gap:8px;">
+      <button style="text-align:left;padding:0.75rem 1rem;">Placeholder sentence using word A</button>
+      <button style="text-align:left;padding:0.75rem 1rem;">Placeholder sentence using word B</button>
+    </div>
+  </div>
+
+  <div id="screen-usage" style="display:none;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <i class="ti ti-arrow-left" onclick="nav('practice')" style="font-size:18px;" aria-hidden="true"></i>
+      <span style="font-size:14px;color:var(--text-secondary);">Word usage errors</span>
+    </div>
+    <div style="font-size:14px;line-height:1.7;margin-bottom:16px;">Choose the sentence where placeholder word is used incorrectly.</div>
+    <div style="display:grid;gap:8px;">
+      <button style="text-align:left;padding:0.75rem 1rem;">A. Placeholder sentence one</button>
+      <button style="text-align:left;padding:0.75rem 1rem;">B. Placeholder sentence two</button>
+      <button style="text-align:left;padding:0.75rem 1rem;">C. Placeholder sentence three</button>
+      <button style="text-align:left;padding:0.75rem 1rem;">D. Placeholder sentence four</button>
+      <button style="text-align:left;padding:0.75rem 1rem;">E. Placeholder sentence five</button>
+    </div>
+  </div>
+
+  <div id="screen-odd" style="display:none;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <i class="ti ti-arrow-left" onclick="nav('practice')" style="font-size:18px;" aria-hidden="true"></i>
+      <span style="font-size:14px;color:var(--text-secondary);">Odd word out</span>
+    </div>
+    <div style="font-size:14px;line-height:1.7;margin-bottom:16px;">Three of these words share a meaning. Pick the one that doesn't fit.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button style="padding:0.9rem;">placeholder</button>
+      <button style="padding:0.9rem;">placeholder</button>
+      <button style="padding:0.9rem;">placeholder</button>
+      <button style="padding:0.9rem;">placeholder</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function nav(id){
+  ['home','learn','practice','cloze','pairs','usage','odd'].forEach(function(s){
+    document.getElementById('screen-'+s).style.display = (s===id) ? 'block' : 'none';
+  });
+}
+</script>
