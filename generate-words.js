@@ -75,6 +75,25 @@ async function fetchExistingWordSet() {
   return new Set(data.map((row) => row.word.toLowerCase()))
 }
 
+// Fetched once at startup, not refreshed mid-run — keeps prompt size (and
+// cost) bounded across a large batch. Any root duplication introduced
+// between two NEW words in the same run (rather than against this
+// pre-existing list) is instead caught by the root-consolidation pass in
+// generate-etymology.js, run after this script finishes.
+async function fetchExistingRoots() {
+  const { data, error } = await supabase.from('words').select('root, root_language').not('root', 'is', null)
+  if (error) throw new Error(`Failed to fetch existing roots: ${error.message}`)
+  const seen = new Map()
+  for (const row of data) {
+    if (!seen.has(row.root)) seen.set(row.root, row.root_language)
+  }
+  return seen
+}
+
+function formatRootReference(rootsMap) {
+  return [...rootsMap.entries()].map(([root, lang]) => `root_string="${root}" (${lang})`).join('\n')
+}
+
 function exampleSentenceRules(word, domain) {
   const toneClause =
     domain === 'tone'
@@ -90,14 +109,21 @@ function exampleSentenceRules(word, domain) {
   Example of the target register, for "dogmatic": "Critics argued that the committee's dogmatic insistence on a single policy framework ignored the complexity of the underlying data." Example of what to AVOID (too casual/narrative): "The group chat had one dogmatic member who refused to admit the restaurant pick was wrong."${toneClause}`
 }
 
-function etymologyRules(word) {
-  return `- root: the core root morpheme "${word}" derives from. CRITICAL for grouping: use the standard, canonical citation form as it would appear in a scholarly etymology dictionary (e.g. a Greek root cited in its lemma form like "dogma" or "phemi"; a Latin root cited by its recognizable stem like "scrib/script" from "scribere"). This exact spelling must be reusable — if you were asked to generate this same root for a different word that shares it, you must produce the identical string, not a variant spelling or an ad hoc form with inconsistent hyphenation. If "${word}" genuinely has no useful/traceable root, set root (and root_meaning, root_language, etymology) to null rather than forcing a weak or fabricated one — this is a valid, confident answer, not a failure.
+function etymologyRules(word, existingRootsText) {
+  return `- root: the core root morpheme "${word}" derives from. CRITICAL for grouping: use the standard, canonical citation form as it would appear in a scholarly etymology dictionary (e.g. a Greek root cited in its lemma form like "dogma" or "phemi"; a Latin root cited by its recognizable stem like "scrib/script" from "scribere"). This exact spelling must be reusable — if you were asked to generate this same root for a different word that shares it, you must produce the identical string, not a variant spelling or an ad hoc form with inconsistent hyphenation.
+
+Before picking a spelling, check this list of roots already used elsewhere in the database (the language in parentheses is just a label for you to read, not part of the string):
+${existingRootsText}
+
+If "${word}" shares a root with any entry above, your root value must be copied EXACTLY from that entry's root_string="..." value — the bare text between the quotes only. Never include the words "root_string", an equals sign, quote characters, or the parenthesized language in the root field itself — those are formatting in this list, not part of the root spelling.
+
+If "${word}" genuinely has no useful/traceable root, set root (and root_meaning, root_language, etymology) to null rather than forcing a weak or fabricated one — this is a valid, confident answer, not a failure.
 - root_meaning: the root's core meaning, a few words (e.g. "opinion, belief"). Null if root is null.
 - root_language: the root's origin language (Greek, Latin, Old English, French, etc). Null if root is null.
 - etymology: a 1-2 sentence memory-bridge narrative connecting the root to "${word}"'s current meaning. Null if root is null. Example, for "dogmatic": "From the Greek dogma, meaning 'opinion' or 'belief.' Someone dogmatic clings rigidly to their opinions as if they were settled fact."`
 }
 
-function buildPrompt(word, domain, roughTier, retryNote) {
+function buildPrompt(word, domain, roughTier, existingRootsText, retryNote) {
   return `You are generating one entry for Vocabl, a CAT (Indian MBA exam) vocabulary app. The target word is "${word}", from the "${domain}" domain, with a rough difficulty anchor of tier ${roughTier} (1 = very common, 5 = genuinely obscure).
 
 Generate the following fields:
@@ -107,7 +133,7 @@ Generate the following fields:
 ${exampleSentenceRules(word, domain)}
 - tier: a refined difficulty rating from 1 to 5, using ${roughTier} as a starting anchor but adjusting if it seems off.
 - part_of_speech: exactly one of noun, verb, adjective, adverb — whichever matches how "${word}" is functioning in the example_sentence you write above.
-${etymologyRules(word)}
+${etymologyRules(word, existingRootsText)}
 
 Then self-check your own output: verify that exactly one of the 4 definition options (correct_definition + the 3 distractor_definitions) is unambiguously the correct definition of "${word}", that none of the 3 distractors could also reasonably be considered a correct definition of "${word}", that part_of_speech genuinely matches the example_sentence's usage, and that the root/etymology (if not null) is historically accurate. Set self_check_passed to true only if all of this holds.
 ${retryNote ? `\n${retryNote}\n` : ''}
@@ -132,6 +158,11 @@ function isValidEtymologyShape(entry) {
   }
   return (
     typeof entry.root === 'string' &&
+    // Guards against the model copying a whole `root_string="x" (Lang)`
+    // reference-list entry instead of just the bare root text.
+    !entry.root.includes('root_string') &&
+    !entry.root.includes('"') &&
+    !entry.root.includes('=') &&
     typeof entry.root_meaning === 'string' &&
     typeof entry.root_language === 'string' &&
     typeof entry.etymology === 'string'
@@ -165,11 +196,11 @@ function parseGeneratedEntry(rawText, word) {
   return { entry, valid: structurallyValid && entry.self_check_passed === true }
 }
 
-async function generateEntry(word, domain, roughTier, retryNote) {
+async function generateEntry(word, domain, roughTier, existingRootsText, retryNote) {
   const message = await anthropic.messages.create({
     model: CLAUDE_MODEL,
     max_tokens: 1024,
-    messages: [{ role: 'user', content: buildPrompt(word, domain, roughTier, retryNote) }],
+    messages: [{ role: 'user', content: buildPrompt(word, domain, roughTier, existingRootsText, retryNote) }],
   })
   const rawText = message.content
     .filter((b) => b.type === 'text')
@@ -178,8 +209,8 @@ async function generateEntry(word, domain, roughTier, retryNote) {
   return parseGeneratedEntry(rawText, word)
 }
 
-async function generateWithRetry(word, domain, roughTier) {
-  const first = await generateEntry(word, domain, roughTier)
+async function generateWithRetry(word, domain, roughTier, existingRootsText) {
+  const first = await generateEntry(word, domain, roughTier, existingRootsText)
   if (first.valid) return first.entry
 
   await sleep(DELAY_BETWEEN_CALLS_MS)
@@ -190,7 +221,7 @@ async function generateWithRetry(word, domain, roughTier) {
     'unmodified word, the root/root_meaning/root_language/etymology fields ' +
     'were inconsistently null vs populated, or the output was malformed). ' +
     `Fix the specific issue and try again for "${word}".`
-  const second = await generateEntry(word, domain, roughTier, retryNote)
+  const second = await generateEntry(word, domain, roughTier, existingRootsText, retryNote)
   if (second.valid) return second.entry
 
   return null
@@ -206,8 +237,13 @@ function logNeedsReview(word, domain, roughTier) {
 async function main() {
   const seedWords = readSeedWords()
   const existingWords = await fetchExistingWordSet()
+  const existingRoots = await fetchExistingRoots()
+  const existingRootsText = formatRootReference(existingRoots)
 
-  console.log(`Loaded ${seedWords.length} seed words. ${existingWords.size} already in the database.\n`)
+  console.log(
+    `Loaded ${seedWords.length} seed words. ${existingWords.size} already in the database. ` +
+      `${existingRoots.size} distinct roots already in use.\n`
+  )
 
   let written = 0
   let skipped = 0
@@ -225,7 +261,7 @@ async function main() {
     }
 
     try {
-      const entry = await generateWithRetry(word, domain, roughTier)
+      const entry = await generateWithRetry(word, domain, roughTier, existingRootsText)
 
       if (!entry) {
         console.log(`${progress} ${word} — FAILED self-check twice, flagged for review`)

@@ -266,16 +266,27 @@ are logged to `needs_review.csv` rather than silently accepted.
   material. Some available lists (e.g., older "CAT 2010" PDFs) are 
   dated and should be filtered for continued relevance rather than 
   imported wholesale.
-- Current word bank: 298 words
-- In progress: expansion to 1000 words total, sourced with web search 
-  for real CAT-relevant frequency signal (not just model recall), 
-  deduplicated against the existing database, maintaining proportional 
-  domain balance and a healthier tier distribution (existing bank 
-  skews tier 3-4; expansion should skew more toward tiers 1-2 to 
-  support the adaptive difficulty mix properly for newer users)
-- Estimated one-time cost for the 1000-word expansion: roughly $7-10 
-  (Claude API, Sonnet pricing), consistent with the ~$0.01/word cost 
-  structure of the original batch
+- Current word bank: 1017 words (done). Expanded from 298 via web-sourced 
+  vocabulary (real CAT-prep lists and editorial-register sources, not 
+  model recall alone), deduplicated against the live database at 
+  generation time. Domain split: general 216, philosophy 107, science 
+  99, economics 98, sociology 93, literature 90, psychology 88, 
+  politics 88, tone 72, environment 66. Tier split: 1=138 (14%), 
+  2=358 (35%), 3=395 (39%), 4=101 (10%), 5=25 (2%) — a genuine bell 
+  curve now (the pre-expansion bank was actually skewed toward tier 2 
+  at 62%, not tiers 3-4 as originally assumed here; corrected during 
+  the expansion)
+- 19 words did not clear the self-check after 4 full retry rounds each 
+  and remain in `needs_review.csv` for manual attention: arcane, 
+  perfunctory, peripatetic, sincere, hopeful, truculent, recycling, 
+  incorrigible, deconstruction, disjunction, incentive, bellwether, 
+  inelastic, cross-sectional, codependency, dysphoria, euphoria, 
+  cosmopolitanism, brazen
+- Root consolidation run post-expansion: 14 manually-vetted spelling 
+  merges applied (out of ~150 the model proposed — the rest were 
+  rejected as false positives, same failure mode as the original 
+  etymology backfill, just at larger scale). 416 distinct roots, 207 
+  shared by 2+ words, largest family (`bios`) has 14
 
 ## Additional CAT-relevant question formats
 
