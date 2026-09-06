@@ -4,6 +4,7 @@ import { useAuth } from '../lib/AuthContext'
 import { fetchProfile } from '../lib/userProfile'
 import { countIncorrect } from '../lib/wordStatus'
 import { logEvent } from '../lib/userEvents'
+import { PRACTICE_TYPES } from '../lib/practiceTypes'
 
 export default function HomePage() {
   const { user } = useAuth()
@@ -16,7 +17,10 @@ export default function HomePage() {
     let cancelled = false
 
     async function load() {
-      const [p, incorrect] = await Promise.all([fetchProfile(user.id), countIncorrect(user.id)])
+      const [p, incorrect] = await Promise.all([
+        fetchProfile(user.id),
+        countIncorrect(user.id, PRACTICE_TYPES.CONTEXTUAL_CLOSEST_MEANING),
+      ])
       if (!cancelled) {
         setProfile(p)
         setIncorrectCount(incorrect)
@@ -69,7 +73,7 @@ export default function HomePage() {
           <button
             type="button"
             className="stat-tile stat-tile-action"
-            onClick={() => navigate('/review?filter=incorrect')}
+            onClick={() => navigate(`/review?type=${PRACTICE_TYPES.CONTEXTUAL_CLOSEST_MEANING}&filter=incorrect`)}
           >
             <div className="stat-value">{incorrectCount}</div>
             <div className="stat-label">to review</div>

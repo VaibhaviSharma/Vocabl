@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage'
 import PracticePage from './pages/PracticePage'
 import LearnPage from './pages/LearnPage'
 import WordFamilyPage from './pages/WordFamilyPage'
+import RootWordsPage from './pages/RootWordsPage'
 import SettingsPage from './pages/SettingsPage'
 import FeedbackPage from './pages/FeedbackPage'
 import MyWordsPage from './pages/MyWordsPage'
@@ -68,6 +69,14 @@ export default function App() {
         element={
           <RequireAuth>
             <WordFamilyPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/roots"
+        element={
+          <RequireAuth>
+            <RootWordsPage />
           </RequireAuth>
         }
       />

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { fetchConfusingPairsQueue } from '../lib/confusingPairs'
+import { upsertConfusingPairStatus } from '../lib/confusingPairStatus'
 import { logEvent } from '../lib/userEvents'
 import { shuffle } from '../lib/shuffle'
 import { maskWord } from '../lib/maskWord'
@@ -16,11 +17,11 @@ function buildOptions(pair) {
   ])
 }
 
-// No word_id / user_word_status / tier ties here — confusing_pairs rows
-// aren't part of the main word bank, and adaptive difficulty is scoped to
-// Quiz only (see vocabl_scope.md). This is a lightweight, self-contained
-// practice loop: pick the word that actually fits, see both meanings,
-// move on.
+// No word_id/tier ties here — confusing_pairs rows aren't part of the main
+// word bank (most confusable partners were never added there), and
+// adaptive difficulty is scoped to Quiz only (see vocabl_scope.md).
+// Correct/incorrect per pair is tracked in its own confusing_pair_status
+// table instead of user_word_status, keyed on confusing_pairs.id.
 export default function ConfusingPairsPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -34,6 +35,12 @@ export default function ConfusingPairsPage() {
   const sessionStartedRef = useRef(false)
   const savedRef = useRef(false)
   const resultsRef = useRef([])
+  // handleSelect now does an awaited network call (status upsert) before
+  // results update. Next/Finish is clickable the instant an answer is
+  // picked (selected is set synchronously), so without this, a fast tap
+  // could advance before the current answer's status write lands — same
+  // race QuizPage guards against with pendingUpdateRef.
+  const pendingUpdateRef = useRef(null)
 
   function endSession(eventType) {
     if (savedRef.current) return
@@ -75,12 +82,20 @@ export default function ConfusingPairsPage() {
   function handleSelect(option) {
     if (selected) return
     setSelected(option)
-    const newResults = [...resultsRef.current, { result: option.isCorrect ? 'correct' : 'incorrect' }]
-    resultsRef.current = newResults
-    setResults(newResults)
+    const pair = queue[index]
+    const result = option.isCorrect ? 'correct' : 'incorrect'
+    const task = (async () => {
+      await upsertConfusingPairStatus(user.id, pair.id, result)
+      const newResults = [...resultsRef.current, { result }]
+      resultsRef.current = newResults
+      setResults(newResults)
+    })()
+    pendingUpdateRef.current = task
+    return task
   }
 
-  function handleNext() {
+  async function handleNext() {
+    if (pendingUpdateRef.current) await pendingUpdateRef.current
     const nextIndex = index + 1
     if (nextIndex >= queue.length) {
       endSession('confusing_pairs_completed')
@@ -92,7 +107,8 @@ export default function ConfusingPairsPage() {
     setSelected(null)
   }
 
-  function handleBack() {
+  async function handleBack() {
+    if (pendingUpdateRef.current) await pendingUpdateRef.current
     endSession('confusing_pairs_exited')
     navigate('/practice')
   }

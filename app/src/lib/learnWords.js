@@ -1,11 +1,10 @@
-import { supabase } from './supabaseClient'
+import { fetchAllRows } from './supabaseUtil'
 
 // Distinct source_domain values currently in the bank, for the Learn-mode
 // domain filter. Queried live rather than hardcoded so it can't drift from
 // whatever the content pipeline has actually generated.
 export async function fetchDomains() {
-  const { data, error } = await supabase.from('words').select('source_domain')
-  if (error) throw error
+  const data = await fetchAllRows('words', 'source_domain')
   return [...new Set(data.map((r) => r.source_domain))].sort()
 }
 
@@ -14,10 +13,9 @@ export async function fetchDomains() {
 // filtered set is fetched once and sliced client-side rather than fetched
 // word-by-word.
 export async function fetchLearnWords({ tier, domain } = {}) {
-  let query = supabase.from('words').select('*')
-  if (tier) query = query.eq('tier', tier)
-  if (domain) query = query.eq('source_domain', domain)
-  const { data, error } = await query
-  if (error) throw error
-  return data
+  return fetchAllRows('words', '*', (q) => {
+    if (tier) q = q.eq('tier', tier)
+    if (domain) q = q.eq('source_domain', domain)
+    return q
+  })
 }

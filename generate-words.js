@@ -69,9 +69,27 @@ function readSeedWords() {
   }))
 }
 
+// Paginated explicitly: Supabase's default 1000-row cap would otherwise
+// silently truncate this once the word bank passes 1000 rows, making
+// already-existing words look "new" and get regenerated/reflagged.
+// `buildQuery` receives the base `supabase.from(table).select(columns)`
+// query so callers can chain additional filters (e.g. `.not(...)`) before
+// pagination is applied.
+async function fetchAllRows(table, columns, buildQuery = (q) => q) {
+  let all = []
+  let from = 0
+  while (true) {
+    const { data, error } = await buildQuery(supabase.from(table).select(columns)).range(from, from + 999)
+    if (error) throw new Error(`Failed to fetch ${table}: ${error.message}`)
+    all = all.concat(data)
+    if (data.length < 1000) break
+    from += 1000
+  }
+  return all
+}
+
 async function fetchExistingWordSet() {
-  const { data, error } = await supabase.from('words').select('word')
-  if (error) throw new Error(`Failed to fetch existing words: ${error.message}`)
+  const data = await fetchAllRows('words', 'word')
   return new Set(data.map((row) => row.word.toLowerCase()))
 }
 
@@ -81,8 +99,7 @@ async function fetchExistingWordSet() {
 // pre-existing list) is instead caught by the root-consolidation pass in
 // generate-etymology.js, run after this script finishes.
 async function fetchExistingRoots() {
-  const { data, error } = await supabase.from('words').select('root, root_language').not('root', 'is', null)
-  if (error) throw new Error(`Failed to fetch existing roots: ${error.message}`)
+  const data = await fetchAllRows('words', 'root, root_language', (q) => q.not('root', 'is', null))
   const seen = new Map()
   for (const row of data) {
     if (!seen.has(row.root)) seen.set(row.root, row.root_language)
@@ -117,7 +134,7 @@ ${existingRootsText}
 
 If "${word}" shares a root with any entry above, your root value must be copied EXACTLY from that entry's root_string="..." value — the bare text between the quotes only. Never include the words "root_string", an equals sign, quote characters, or the parenthesized language in the root field itself — those are formatting in this list, not part of the root spelling.
 
-If "${word}" genuinely has no useful/traceable root, set root (and root_meaning, root_language, etymology) to null rather than forcing a weak or fabricated one — this is a valid, confident answer, not a failure.
+If you are not fully confident the root is historically accurate — including if you find yourself hedging between two possible derivations, or unsure whether it's the direct root vs. a loosely related word — set root (and root_meaning, root_language, etymology) to null rather than guessing. A null root is a valid, confident, PASSING answer, never a failure; it only means this word won't appear in a "same root" group, which is fine. Do not let an uncertain root be the reason the whole entry fails self-check — if the correct_definition/distractor_definitions/part_of_speech are solid, prefer null root over failing.
 - root_meaning: the root's core meaning, a few words (e.g. "opinion, belief"). Null if root is null.
 - root_language: the root's origin language (Greek, Latin, Old English, French, etc). Null if root is null.
 - etymology: a 1-2 sentence memory-bridge narrative connecting the root to "${word}"'s current meaning. Null if root is null. Example, for "dogmatic": "From the Greek dogma, meaning 'opinion' or 'belief.' Someone dogmatic clings rigidly to their opinions as if they were settled fact."`

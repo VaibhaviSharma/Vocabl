@@ -746,11 +746,13 @@ button {
 }
 
 .quiz-history-row {
+  display: block;
   border-radius: var(--card-radius);
   border: 1px solid var(--card-border-color);
   box-shadow: var(--card-shadow);
   background: var(--surface);
   overflow: hidden;
+  text-decoration: none;
 }
 
 .quiz-history-summary {
@@ -765,6 +767,9 @@ button {
   cursor: pointer;
   font-size: 14px;
   text-align: left;
+  text-decoration: none;
+  color: var(--text-primary);
+  box-sizing: border-box;
 }
 
 .quiz-history-summary span:first-child {

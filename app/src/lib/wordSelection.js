@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient'
+import { fetchAllRows } from './supabaseUtil'
 import { shuffle } from './shuffle'
 
 const TIER_MIN = 1
@@ -19,15 +19,11 @@ export function pickRandomWord(words) {
 }
 
 async function fetchWordsAtTier(tier) {
-  const { data, error } = await supabase.from('words').select('*').eq('tier', tier)
-  if (error) throw error
-  return data
+  return fetchAllRows('words', '*', (q) => q.eq('tier', tier))
 }
 
 async function fetchAnyWord() {
-  const { data, error } = await supabase.from('words').select('*')
-  if (error) throw error
-  return data
+  return fetchAllRows('words', '*')
 }
 
 function excludeWords(words, excludeIds) {
@@ -66,19 +62,11 @@ export async function getNextWord(currentTier, excludeIds = []) {
 export async function fetchDistractorWords(partOfSpeech, excludeId, count) {
   let candidates = []
   if (partOfSpeech) {
-    const { data, error } = await supabase
-      .from('words')
-      .select('id, word')
-      .eq('part_of_speech', partOfSpeech)
-      .neq('id', excludeId)
-    if (error) throw error
-    candidates = data
+    candidates = await fetchAllRows('words', 'id, word', (q) => q.eq('part_of_speech', partOfSpeech).neq('id', excludeId))
   }
 
   if (candidates.length < count) {
-    const { data, error } = await supabase.from('words').select('id, word').neq('id', excludeId)
-    if (error) throw error
-    candidates = data
+    candidates = await fetchAllRows('words', 'id, word', (q) => q.neq('id', excludeId))
   }
 
   return shuffle(candidates).slice(0, count)

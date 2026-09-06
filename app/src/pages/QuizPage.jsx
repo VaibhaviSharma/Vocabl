@@ -9,8 +9,10 @@ import { createQuizAttempt, saveQuizResults } from '../lib/quizAttempts'
 import { logEvent } from '../lib/userEvents'
 import { shuffle } from '../lib/shuffle'
 import { maskWord } from '../lib/maskWord'
+import { PRACTICE_TYPES } from '../lib/practiceTypes'
 
 const SESSION_LENGTH = 10
+const PRACTICE_TYPE = PRACTICE_TYPES.CONTEXTUAL_CLOSEST_MEANING
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E']
 
 // Contextual-closest-meaning cloze: the target word's own sentence, blanked,
@@ -123,7 +125,7 @@ export default function QuizPage() {
 
     const words =
       chosenCategory === 'wrong_only'
-        ? shuffle((await fetchWordStatuses(user.id, 'incorrect')).map((r) => r.words))
+        ? shuffle((await fetchWordStatuses(user.id, PRACTICE_TYPE, 'incorrect')).map((r) => r.words))
         : await drawAdaptiveQueue(p.current_tier, SESSION_LENGTH)
 
     if (words.length === 0) {
@@ -149,7 +151,7 @@ export default function QuizPage() {
     const word = queue[index]
     const result = option.isCorrect ? 'correct' : 'incorrect'
     const task = (async () => {
-      await upsertWordStatus(user.id, word.id, result)
+      await upsertWordStatus(user.id, word.id, result, PRACTICE_TYPE)
       const updates = applyRoundResult(profileRef.current, { tier: word.tier, result, usedMaxAttempts: false })
       const updatedProfile = await saveProfile(user.id, updates)
       profileRef.current = updatedProfile

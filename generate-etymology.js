@@ -51,10 +51,25 @@ if (!ANTHROPIC_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY })
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
+// Paginated explicitly: Supabase's default 1000-row cap would otherwise
+// silently truncate this once the word bank passes 1000 rows.
+// `buildQuery` receives the base `supabase.from(table).select(columns)`
+// query so callers can chain filters (e.g. `.not(...)`) before pagination.
+async function fetchAllRows(table, columns, buildQuery = (q) => q) {
+  let all = []
+  let from = 0
+  while (true) {
+    const { data, error } = await buildQuery(supabase.from(table).select(columns)).range(from, from + 999)
+    if (error) throw new Error(`Failed to fetch ${table}: ${error.message}`)
+    all = all.concat(data)
+    if (data.length < 1000) break
+    from += 1000
+  }
+  return all
+}
+
 async function fetchAllWords() {
-  const { data, error } = await supabase.from('words').select('id, word, source_domain').order('word')
-  if (error) throw new Error(`Failed to fetch words: ${error.message}`)
-  return data
+  return fetchAllRows('words', 'id, word, source_domain', (q) => q.order('word'))
 }
 
 function buildPrompt(row, retryNote) {
@@ -147,8 +162,7 @@ function logNeedsReview(word, domain) {
 // share a substring), so proposals are meant to be reviewed before
 // applyRootMerges() is called on a vetted subset.
 async function proposeRootMerges() {
-  const { data, error } = await supabase.from('words').select('word, root, root_language').not('root', 'is', null)
-  if (error) throw new Error(`Failed to fetch roots for consolidation: ${error.message}`)
+  const data = await fetchAllRows('words', 'word, root, root_language', (q) => q.not('root', 'is', null))
 
   const byRoot = new Map()
   for (const row of data) {
@@ -173,7 +187,7 @@ Respond only with valid JSON, no other text, no markdown formatting, no preamble
 
   const message = await anthropic.messages.create({
     model: CLAUDE_MODEL,
-    max_tokens: 4096,
+    max_tokens: 8192,
     messages: [{ role: 'user', content: prompt }],
   })
   const rawText = message.content
@@ -231,8 +245,7 @@ async function applyRootMerges(groups) {
 }
 
 async function printFamilyReport() {
-  const { data, error } = await supabase.from('words').select('root').not('root', 'is', null)
-  if (error) throw new Error(`Failed to fetch roots for report: ${error.message}`)
+  const data = await fetchAllRows('words', 'root', (q) => q.not('root', 'is', null))
 
   const counts = new Map()
   for (const row of data) counts.set(row.root, (counts.get(row.root) || 0) + 1)

@@ -92,7 +92,10 @@ Users choose *what skill/format* to practice; the app quietly manages
 
 ## Core gameplay modes (current)
 
-### 1. Learn (flashcards)
+### 1. Learn — two modes
+Learn opens to a mode picker, not straight into flashcards:
+
+**Flashcards** (the original mode)
 - Passive, self-paced, no scoring, no pressure
 - Word shown, tap/reveal to see back: `correct_definition`, then 
   `etymology` (labeled distinctly, e.g., "Origin"), a tappable 
@@ -103,6 +106,19 @@ Users choose *what skill/format* to practice; the app quietly manages
 - Does NOT write to `user_word_status` — viewing is exposure, not an 
   attempt. Logged instead to a separate `word_views` table 
   (`user_id`, `word_id`, `viewed_at`)
+
+**Root Words** (done) — a root-first way into the same Word Family 
+data the flashcard's root chip already opens (additional entry point, 
+not a replacement)
+- Browse list of every root with 3+ words sharing it (122 currently), 
+  each row showing the root, its meaning, its language, and the word 
+  count, sorted largest-family-first
+- Tapping a root opens the existing Word Family view (root + meaning + 
+  language at top, every word sharing it listed below with its 
+  `correct_definition`) — literally the same page/route the flashcard 
+  chip uses, just reached root-first instead of word-first
+- Passive/reference, same as flashcards — no scoring, no attempts 
+  logged, just a `screen_viewed` event
 
 ### 2. Hangman — REMOVED (done)
 
@@ -195,6 +211,25 @@ not currently planned.
   `user_word_status`), each row showing the word and its current 
   correct/incorrect status
 - "Generate Quiz" button, entry point into Quiz mode above
+- **Status is tracked per practice format, not one shared value per 
+  word.** `user_word_status` has a `practice_type` column 
+  (`contextual_closest_meaning`, `confusing_word_pairs`, 
+  `word_usage_errors`, `odd_word_out`), unique on `(user_id, word_id, 
+  practice_type)` — a user consistently nailing a word in Quiz but 
+  struggling with it in a different format keeps both signals instead 
+  of one overwriting the other. My Words has a practice-type chip 
+  selector (all four shown, for the same forward-compatible reason the 
+  Practice menu shows all four formats before they're all built); "All 
+  / Incorrect only" filters within whichever type is selected
+- Confusing Word Pairs can't share this table: only 2 of its 48 rows 
+  have a matching entry in `words` (most confusable partners, e.g. 
+  "disburse"/"disperse", were never added to the main bank), so a 
+  `word_id` foreign key would silently fail to track almost 
+  everything. It gets its own `confusing_pair_status` table instead — 
+  same last-result-wins shape, keyed on `confusing_pairs.id`. My Words' 
+  selector shows an honest "tracked separately" message for that tab 
+  rather than pretending it's queryable the same way; no dedicated 
+  review screen for it yet
 
 ### My Quiz Score tab
 - Tabular history of past quiz attempts: date/time, category (All / 
@@ -266,27 +301,40 @@ are logged to `needs_review.csv` rather than silently accepted.
   material. Some available lists (e.g., older "CAT 2010" PDFs) are 
   dated and should be filtered for continued relevance rather than 
   imported wholesale.
-- Current word bank: 1017 words (done). Expanded from 298 via web-sourced 
+- Current word bank: 1026 words (done). Expanded from 298 via web-sourced 
   vocabulary (real CAT-prep lists and editorial-register sources, not 
   model recall alone), deduplicated against the live database at 
-  generation time. Domain split: general 216, philosophy 107, science 
-  99, economics 98, sociology 93, literature 90, psychology 88, 
-  politics 88, tone 72, environment 66. Tier split: 1=138 (14%), 
-  2=358 (35%), 3=395 (39%), 4=101 (10%), 5=25 (2%) — a genuine bell 
+  generation time. Domain split: general 216, science 100, economics 
+  100, philosophy 107, sociology 94, literature 90, psychology 89, 
+  politics 88, tone 75, environment 67. Tier split: 1=141 (14%), 
+  2=358 (35%), 3=400 (39%), 4=102 (10%), 5=25 (2%) — a genuine bell 
   curve now (the pre-expansion bank was actually skewed toward tier 2 
   at 62%, not tiers 3-4 as originally assumed here; corrected during 
   the expansion)
-- 19 words did not clear the self-check after 4 full retry rounds each 
-  and remain in `needs_review.csv` for manual attention: arcane, 
-  perfunctory, peripatetic, sincere, hopeful, truculent, recycling, 
-  incorrigible, deconstruction, disjunction, incentive, bellwether, 
-  inelastic, cross-sectional, codependency, dysphoria, euphoria, 
-  cosmopolitanism, brazen
-- Root consolidation run post-expansion: 14 manually-vetted spelling 
-  merges applied (out of ~150 the model proposed — the rest were 
-  rejected as false positives, same failure mode as the original 
-  etymology backfill, just at larger scale). 416 distinct roots, 207 
-  shared by 2+ words, largest family (`bios`) has 14
+- 10 words never cleared self-check after 5 full retry rounds each 
+  (with a prompt specifically nudged toward preferring a null root 
+  over a shaky guess) and remain in `needs_review.csv` for manual 
+  attention: arcane, perfunctory, peripatetic, incorrigible, 
+  deconstruction, disjunction, incentive, dysphoria, euphoria, brazen
+- Root consolidation validation (a second, separate pass from the 
+  original backfill's): the model proposed ~260 merges across two 
+  runs (once the word bank passed 1000 rows), of which 17 were 
+  verified against actual word/language/meaning data and applied — 
+  the rest were false positives at the same rate as before (roots 
+  that are merely similar-sounding or share an English gloss across 
+  languages, not actually the same historical root). 413 distinct 
+  roots, 209 shared by 2+ words, 122 have 3+ words (the cutoff used by 
+  the Root Words section below), largest family (`bios`) has 14
+- **Found and fixed a real pagination bug** while running this: 
+  several Supabase queries across the content-generation scripts *and* 
+  the live app (`fetchExistingWordSet`, the root-consolidation queries, 
+  Learn's "All tiers/All domains" fetch, Quiz's distractor-fallback 
+  fetch) had no explicit pagination, so once the word bank passed 
+  Supabase's default 1000-row cap, they silently returned a truncated 
+  result — in the generation scripts this caused already-existing 
+  words to look "new" and get spuriously reflagged as failures. All 
+  now paginate explicitly (`lib/supabaseUtil.js`'s `fetchAllRows` in 
+  the app, an equivalent helper in each script)
 
 ## Additional CAT-relevant question formats
 

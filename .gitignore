@@ -33,4 +33,4 @@ supabase/.branches
 
 # Claude Code local settings
 .claude/
-needs_review.csv
+needs_review*.csv

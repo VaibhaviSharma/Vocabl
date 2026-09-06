@@ -12,7 +12,7 @@ const SESSION_LENGTH = 10
 export default function LearnPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [step, setStep] = useState('filters') // 'filters' | 'loading' | 'playing' | 'empty' | 'complete'
+  const [step, setStep] = useState('mode') // 'mode' | 'filters' | 'loading' | 'playing' | 'empty' | 'complete'
   const [domains, setDomains] = useState([])
   const [tierFilter, setTierFilter] = useState(null)
   const [domainFilter, setDomainFilter] = useState(null)
@@ -111,12 +111,31 @@ export default function LearnPage() {
   return (
     <div className="app-shell">
       <div className="page-card">
-        {step === 'filters' && (
+        {step === 'mode' && (
           <>
             <div className="word-card-top">
               <Link to="/home" className="back-link">
                 ← Back
               </Link>
+            </div>
+            <div className="auth-logo">Learn</div>
+            <div className="category-choice">
+              <button type="button" className="btn btn-secondary" onClick={() => setStep('filters')}>
+                📖 Flashcards
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => navigate('/roots')}>
+                🌳 Root Words
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 'filters' && (
+          <>
+            <div className="word-card-top">
+              <button type="button" className="back-link" onClick={() => setStep('mode')}>
+                ← Back
+              </button>
             </div>
             <div className="category-choice">
               <p>Filter which words to see (optional)</p>
