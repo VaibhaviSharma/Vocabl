@@ -4,6 +4,8 @@ import { useAuth } from '../lib/AuthContext'
 import { fetchLearnWords, fetchDomains } from '../lib/learnWords'
 import { logWordView } from '../lib/wordViews'
 import { logEvent } from '../lib/userEvents'
+import { fetchProfile, saveProfile } from '../lib/userProfile'
+import { recordPracticeActivity } from '../lib/adaptiveTier'
 import { shuffle } from '../lib/shuffle'
 import Flashcard from '../components/Flashcard'
 
@@ -29,6 +31,9 @@ export default function LearnPage() {
   // the session actually ran with, not whatever the filter chips currently
   // show (which could differ if the user changed them after "Learn again").
   const sessionFiltersRef = useRef({ tier: null, domain: null })
+  // Read/written by recordActivity so the streak/words-played update
+  // always builds on the profile state that was current at the time.
+  const profileRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -62,13 +67,25 @@ export default function LearnPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Fire-and-forget, like logEvent/logWordView — a stale/failed streak
+  // update should never block or slow down flashcard navigation.
+  function recordActivity() {
+    if (!profileRef.current) return
+    saveProfile(user.id, recordPracticeActivity(profileRef.current))
+      .then((p) => {
+        profileRef.current = p
+      })
+      .catch((err) => console.error('Failed to update practice activity:', err))
+  }
+
   async function startSession() {
     setStep('loading')
     sessionFiltersRef.current = { tier: tierFilter, domain: domainFilter }
-    const words = shuffle(await fetchLearnWords({ tier: tierFilter, domain: domainFilter })).slice(
-      0,
-      SESSION_LENGTH
-    )
+    const [words, p] = await Promise.all([
+      fetchLearnWords({ tier: tierFilter, domain: domainFilter }).then((w) => shuffle(w).slice(0, SESSION_LENGTH)),
+      fetchProfile(user.id),
+    ])
+    profileRef.current = p
 
     if (words.length === 0) {
       setStep('empty')
@@ -87,6 +104,7 @@ export default function LearnPage() {
       domain: domainFilter,
     })
     logWordView(user.id, words[0].id)
+    recordActivity()
   }
 
   function handleNext() {
@@ -99,6 +117,7 @@ export default function LearnPage() {
     setIndex(nextIndex)
     viewedCountRef.current += 1
     logWordView(user.id, queue[nextIndex].id)
+    recordActivity()
   }
 
   function handleBack() {
@@ -121,10 +140,10 @@ export default function LearnPage() {
             <div className="auth-logo">Learn</div>
             <div className="category-choice">
               <button type="button" className="btn btn-secondary" onClick={() => setStep('filters')}>
-                📖 Flashcards
+                Flashcards
               </button>
               <button type="button" className="btn btn-secondary" onClick={() => navigate('/roots')}>
-                🌳 Root Words
+                Root Words
               </button>
             </div>
           </>

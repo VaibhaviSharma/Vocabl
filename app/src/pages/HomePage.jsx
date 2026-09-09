@@ -53,15 +53,11 @@ export default function HomePage() {
           </div>
         </div>
 
-        <span className="tier-badge">Tier {profile.current_tier}</span>
-
         <button type="button" className="play-button" onClick={() => navigate('/learn')}>
-          <span className="play-icon">📖</span>
           Learn
         </button>
 
         <button type="button" className="play-button" onClick={() => navigate('/practice')}>
-          <span className="play-icon">🎯</span>
           Practice
         </button>
 

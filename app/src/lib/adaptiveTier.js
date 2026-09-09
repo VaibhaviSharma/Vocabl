@@ -37,14 +37,10 @@ function daysBetween(fromDateStr, toDateStr) {
   return Math.round((to - from) / 86400000)
 }
 
-// Given the current stored profile and the outcome of a just-finished round,
-// returns the fields to persist. Pure — no Supabase calls here, so the
-// upsert/read boundary and the actual progression rules can be tested
-// separately.
-export function applyRoundResult(profile, roundOutcome) {
-  const recentResults = [...profile.recent_results, roundOutcome].slice(-WINDOW_SIZE)
-  const currentTier = nextTier(profile.current_tier, recentResults)
-
+// Shared by every format — a day-streak and lifetime words-played count are
+// engagement metrics, not Quiz-specific ones, so this doesn't touch
+// current_tier/recent_results (Quiz's adaptive-difficulty state).
+function computeActivityFields(profile) {
   const today = todayLocalDate()
   let streakCount
   if (!profile.last_played_date || profile.last_played_date === today) {
@@ -56,10 +52,33 @@ export function applyRoundResult(profile, roundOutcome) {
   }
 
   return {
-    current_tier: currentTier,
-    recent_results: recentResults,
     words_played: profile.words_played + 1,
     streak_count: streakCount,
     last_played_date: today,
   }
+}
+
+// Given the current stored profile and the outcome of a just-finished round,
+// returns the fields to persist. Pure — no Supabase calls here, so the
+// upsert/read boundary and the actual progression rules can be tested
+// separately. Quiz-only: it's the only format with a difficulty tier to
+// adapt.
+export function applyRoundResult(profile, roundOutcome) {
+  const recentResults = [...profile.recent_results, roundOutcome].slice(-WINDOW_SIZE)
+  const currentTier = nextTier(profile.current_tier, recentResults)
+
+  return {
+    current_tier: currentTier,
+    recent_results: recentResults,
+    ...computeActivityFields(profile),
+  }
+}
+
+// Used by every format that doesn't drive adaptive difficulty (Confusing
+// Word Pairs, Word Usage Errors, Odd Word Out, Learn) so the streak/
+// words-played count reflects practice in general, not just Quiz —
+// otherwise a user who never plays Quiz sees the streak stuck at 0
+// forever, which is indistinguishable from it being broken.
+export function recordPracticeActivity(profile) {
+  return computeActivityFields(profile)
 }

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { fetchEligibleClusters, buildOddWordOutQuestion } from '../lib/wordClusters'
 import { upsertWordStatus } from '../lib/wordStatus'
+import { fetchProfile, saveProfile } from '../lib/userProfile'
+import { recordPracticeActivity } from '../lib/adaptiveTier'
 import { logEvent } from '../lib/userEvents'
 import { PRACTICE_TYPES } from '../lib/practiceTypes'
 
@@ -29,6 +31,9 @@ export default function OddWordOutPage() {
   const sessionStartedRef = useRef(false)
   const savedRef = useRef(false)
   const resultsRef = useRef([])
+  // Read by handleSelect so the streak/words-played update always builds
+  // on the profile state that was current at the time.
+  const profileRef = useRef(null)
   // See ConfusingPairsPage/QuizPage: handleSelect awaits a status write
   // before results update, but Next/Finish is clickable the instant an
   // answer is picked — this stops it from racing ahead of that write.
@@ -60,8 +65,9 @@ export default function OddWordOutPage() {
 
   async function startSession() {
     setStep('loading')
-    const clusters = await fetchEligibleClusters()
+    const [clusters, p] = await Promise.all([fetchEligibleClusters(), fetchProfile(user.id)])
     clustersRef.current = clusters
+    profileRef.current = p
 
     if (clusters.length < 2) {
       setStep('empty')
@@ -89,6 +95,7 @@ export default function OddWordOutPage() {
     const result = option.isOdd ? 'correct' : 'incorrect'
     const task = (async () => {
       await upsertWordStatus(user.id, question.oddWord.id, result, PRACTICE_TYPE)
+      profileRef.current = await saveProfile(user.id, recordPracticeActivity(profileRef.current))
       const newResults = [...resultsRef.current, { result }]
       resultsRef.current = newResults
       setResults(newResults)
@@ -179,11 +186,25 @@ export default function OddWordOutPage() {
 
             {selected && (
               <>
-                <p className="reveal-definition">Shared meaning: {question.theme}</p>
-                <p className="reveal-example">
-                  <strong>{question.oddWord.word}</strong> means {question.oddWord.correct_definition} — a different
-                  sense from the other three.
-                </p>
+                {selected.isOdd ? (
+                  <>
+                    <p className="reveal-definition">Shared meaning: {question.theme}</p>
+                    <p className="reveal-example">
+                      <strong>{question.oddWord.word}</strong> means {question.oddWord.correct_definition} — a
+                      different sense from the other three.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="reveal-definition">
+                      You picked: <strong>{selected.word}</strong> — {selected.correct_definition}
+                    </p>
+                    <p className="reveal-definition">
+                      Correct answer: <strong>{question.oddWord.word}</strong> — {question.oddWord.correct_definition}
+                    </p>
+                    <p className="reveal-example">Shared meaning of the other three: {question.theme}</p>
+                  </>
+                )}
                 <button type="button" className="btn btn-primary" onClick={handleNext}>
                   {round + 1 >= SESSION_LENGTH ? 'Finish' : 'Next'}
                 </button>

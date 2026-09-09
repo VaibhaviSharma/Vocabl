@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { fetchUsageErrorEntries, buildSentenceOptions } from '../lib/usageErrors'
 import { fetchWordStatuses, upsertWordStatus } from '../lib/wordStatus'
+import { fetchProfile, saveProfile } from '../lib/userProfile'
+import { recordPracticeActivity } from '../lib/adaptiveTier'
 import { logEvent } from '../lib/userEvents'
 import { shuffle } from '../lib/shuffle'
 import { PRACTICE_TYPES } from '../lib/practiceTypes'
@@ -28,6 +30,9 @@ export default function WordUsageErrorsPage() {
   const sessionStartedRef = useRef(false)
   const savedRef = useRef(false)
   const resultsRef = useRef([])
+  // Read by handleSelect so the streak/words-played update always builds
+  // on the profile state that was current at the time.
+  const profileRef = useRef(null)
   // See ConfusingPairsPage/QuizPage: handleSelect awaits a status write
   // before results update, but Next/Finish is clickable the instant an
   // answer is picked — this stops it from racing ahead of that write.
@@ -50,7 +55,8 @@ export default function WordUsageErrorsPage() {
 
   async function startSession(category) {
     setStep('loading')
-    const allEntries = await fetchUsageErrorEntries()
+    const [allEntries, p] = await Promise.all([fetchUsageErrorEntries(), fetchProfile(user.id)])
+    profileRef.current = p
     const entryByWordId = new Map(allEntries.map((e) => [e.word.id, e]))
 
     const entries =
@@ -84,6 +90,7 @@ export default function WordUsageErrorsPage() {
     const result = !option.isCorrect ? 'correct' : 'incorrect'
     const task = (async () => {
       await upsertWordStatus(user.id, entry.word.id, result, PRACTICE_TYPE)
+      profileRef.current = await saveProfile(user.id, recordPracticeActivity(profileRef.current))
       const newResults = [...resultsRef.current, { result }]
       resultsRef.current = newResults
       setResults(newResults)
@@ -176,9 +183,18 @@ export default function WordUsageErrorsPage() {
 
             {selected && wrongSentence && (
               <>
-                <p className="reveal-definition">
-                  <strong>{current.word.word}</strong> actually means: {current.word.correct_definition}
-                </p>
+                {selected.isCorrect ? (
+                  <>
+                    <p className="reveal-example">The actually incorrect sentence: "{wrongSentence.sentence}"</p>
+                    <p className="reveal-definition">
+                      <strong>{current.word.word}</strong> actually means: {current.word.correct_definition}
+                    </p>
+                  </>
+                ) : (
+                  <p className="reveal-definition">
+                    <strong>{current.word.word}</strong> means: {current.word.correct_definition}
+                  </p>
+                )}
                 <button type="button" className="btn btn-primary" onClick={handleNext}>
                   {index + 1 >= queue.length ? 'Finish' : 'Next'}
                 </button>

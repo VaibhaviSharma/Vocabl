@@ -21,8 +21,8 @@ const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E']
 async function buildClozeOptions(word) {
   const distractors = await fetchDistractorWords(word.part_of_speech, word.id, 4)
   return shuffle([
-    { id: word.id, word: word.word, isCorrect: true },
-    ...distractors.map((d) => ({ id: d.id, word: d.word, isCorrect: false })),
+    { id: word.id, word: word.word, correct_definition: word.correct_definition, isCorrect: true },
+    ...distractors.map((d) => ({ id: d.id, word: d.word, correct_definition: d.correct_definition, isCorrect: false })),
   ])
 }
 
@@ -245,6 +245,17 @@ export default function QuizPage() {
                 )
               })}
             </div>
+            {selected && !selected.isCorrect && (
+              <>
+                <p className="reveal-definition">
+                  You picked: <strong>{selected.word}</strong> — {selected.correct_definition}
+                </p>
+                <p className="reveal-definition">
+                  Correct answer: <strong>{currentWord.word}</strong> — {currentWord.correct_definition}
+                </p>
+              </>
+            )}
+
             {selected && (
               <button type="button" className="btn btn-primary" onClick={handleNext}>
                 {index + 1 >= queue.length ? 'Finish quiz' : 'Next word'}

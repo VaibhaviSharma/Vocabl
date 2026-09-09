@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { fetchConfusingPairsQueue } from '../lib/confusingPairs'
 import { upsertConfusingPairStatus } from '../lib/confusingPairStatus'
+import { fetchProfile, saveProfile } from '../lib/userProfile'
+import { recordPracticeActivity } from '../lib/adaptiveTier'
 import { logEvent } from '../lib/userEvents'
 import { shuffle } from '../lib/shuffle'
 import { maskWord } from '../lib/maskWord'
@@ -35,6 +37,9 @@ export default function ConfusingPairsPage() {
   const sessionStartedRef = useRef(false)
   const savedRef = useRef(false)
   const resultsRef = useRef([])
+  // Read by handleSelect so the streak/words-played update always builds
+  // on the profile state that was current at the time.
+  const profileRef = useRef(null)
   // handleSelect now does an awaited network call (status upsert) before
   // results update. Next/Finish is clickable the instant an answer is
   // picked (selected is set synchronously), so without this, a fast tap
@@ -62,7 +67,8 @@ export default function ConfusingPairsPage() {
 
   async function startSession() {
     setStep('loading')
-    const pairs = await fetchConfusingPairsQueue(SESSION_LENGTH)
+    const [pairs, p] = await Promise.all([fetchConfusingPairsQueue(SESSION_LENGTH), fetchProfile(user.id)])
+    profileRef.current = p
     if (pairs.length === 0) {
       setStep('intro')
       return
@@ -86,6 +92,7 @@ export default function ConfusingPairsPage() {
     const result = option.isCorrect ? 'correct' : 'incorrect'
     const task = (async () => {
       await upsertConfusingPairStatus(user.id, pair.id, result)
+      profileRef.current = await saveProfile(user.id, recordPracticeActivity(profileRef.current))
       const newResults = [...resultsRef.current, { result }]
       resultsRef.current = newResults
       setResults(newResults)
