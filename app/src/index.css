@@ -485,6 +485,17 @@ button {
   margin-right: 4px;
 }
 
+.grid-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.grid-options .quiz-option {
+  text-align: center;
+  text-transform: capitalize;
+}
+
 .empty-state {
   text-align: center;
   color: var(--text-muted);

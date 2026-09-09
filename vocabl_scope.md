@@ -72,18 +72,17 @@ doesn't grow cluttered as more question formats are added:
 
 - **Learn** — passive flashcard exposure mode
 - **Practice** — opens a secondary menu listing individual CAT-native 
-  question formats (Quiz/context-fit cloze and Confusing Word Pairs 
-  live now; Word Usage Errors and Odd Word Out as they're built)
+  question formats (all four now live: Quiz/context-fit cloze, 
+  Confusing Word Pairs, Word Usage Errors, Odd Word Out)
 
 New question-type formats get added inside the Practice menu over 
 time, not as new buttons directly on Home.
 
 Per the clickable prototype (`vocabl_prototype_placeholder.html`), the 
-Practice menu shows all four target formats from day one — 
-"Contextual closest meaning" (live, → Quiz), "Confusing word pairs" 
-(live, → `/pairs`), "Word usage errors," "Odd word out" (the latter 
-two still rendered disabled with a "coming soon" label) — rather than 
-only listing whatever's currently live.
+Practice menu shows all four target formats — "Contextual closest 
+meaning" (→ `/quiz`), "Confusing word pairs" (→ `/pairs`), "Word usage 
+errors" (→ `/usage-errors`), "Odd word out" (→ `/odd-word-out`) — and 
+all four are now built and live.
 
 Difficulty tier is an invisible, adaptive layer running underneath 
 whichever format the user is in — it is never a user-facing selector. 
@@ -205,6 +204,54 @@ not currently planned.
 - After answering, both words' meanings are shown (not just the 
   correct one) — the point is learning to distinguish the pair, not 
   just getting the current question right
+
+### 5. Word Usage Errors (done)
+- Format: 5 sentences using the same target word — 4 correct usages, 1 
+  subtly wrong. User picks the sentence where the word is used 
+  incorrectly
+- Content lives in `usage_sentences` (`word_id`, `sentence`, 
+  `is_correct`), 5 rows per word. Generated via `generate-usage-errors.js`, 
+  one API call per word, self-checked (exactly one sentence unambiguously 
+  wrong, the other four unambiguously right, a real identifiable error — 
+  wrong sense/part-of-speech, not a trick), retry-once, `needs_review.csv` 
+  on persistent failure
+- Scoped to tier 2-4 words only (860 of 1026) — very easy or very obscure 
+  words don't reliably produce good "spot the error" material. Ran once: 
+  860/860 written, 0 flagged
+- Entry point: Home → Practice → "Word usage errors"; category picker 
+  (All words / Only wrong), same as Quiz
+- Correctness tracked in `user_word_status` keyed on the target word, 
+  `practice_type = 'word_usage_errors'` — isolated from every other 
+  format via the `(user_id, word_id, practice_type)` key
+- After answering, reveals the word's `correct_definition` to clarify 
+  its actual meaning
+
+### 6. Odd Word Out (done)
+- Format: 4 words, 3 sharing a meaning and 1 that doesn't belong. User 
+  picks the odd one out
+- Content lives in `meaning_clusters` (`id`, `theme`) and join table 
+  `word_cluster_members` (`cluster_id`, `word_id`) — synonym/near-synonym 
+  groups of 4-6 words, tier-matched (within 2 tiers of each other) so the 
+  odd word isn't guessable purely by difficulty. Built via 
+  `generate-meaning-clusters.js`, one batch-analysis call per 
+  `source_domain` (not per-word) reading each domain's words + 
+  `correct_definition`s and proposing clusters, self-checked for genuine 
+  shared meaning and tier fit
+- Ran once across all 10 domains: 67 clusters formed, average cluster 
+  size 4.0, 268/1026 words placed in a cluster (the rest don't have 
+  enough true synonyms in the bank and are simply unused here — expected)
+- Question construction happens at runtime, not pre-generated: pick a 
+  cluster, take 3 of its members, pick a 4th "odd" word from a different 
+  cluster (chosen from a small pool of the closest-tier candidates, not 
+  always the single closest, for variety), shuffle display order
+- Entry point: Home → Practice → "Odd word out"; single "Start" button 
+  (no category picker — a cluster-built question doesn't map cleanly onto 
+  a per-word "wrong only" filter, so this follows Confusing Word Pairs' 
+  simpler pattern instead of Quiz's)
+- Correctness tracked in `user_word_status` keyed on the odd word, 
+  `practice_type = 'odd_word_out'`
+- After answering, reveals the cluster's shared-meaning theme and the odd 
+  word's actual definition
 
 ### My Words screen
 - Table/list of every word the user has played (from 
@@ -366,18 +413,16 @@ text rather than isolated recall:
    `word_meaning`, `confused_meaning`, `demonstrating_sentence`), 24 
    seed pairs → 48 rows via `generate-confusing-pairs.js`
 3. **Word Usage Errors** (identifying incorrect contextual usage) — 
-   same as "Incorrect usage identification" already catalogued: 5 
-   sentences per word, 4 correct and 1 subtly wrong, identify the 
-   wrong one. More generation-intensive, stricter self-check needed.
+   **already built** (see Core gameplay modes above): 5 sentences per 
+   word (tier 2-4 only, 860 words), 4 correct and 1 subtly wrong, 
+   identify the wrong one, via `generate-usage-errors.js`
 4. **Odd Word Out** (thematic exclusion — which word doesn't share the 
-   group's meaning) — same as "Odd-one-out" already catalogued: needs 
-   words grouped by meaning cluster, not just domain/tier.
+   group's meaning) — **already built** (see Core gameplay modes above): 
+   67 meaning clusters (avg size 4.0, 268 words) via 
+   `generate-meaning-clusters.js`, questions assembled at runtime
 
-These four formats are the complete, authoritative target set for 
-Vocabl's Practice menu — two are live (Quiz/Contextual Closest Meaning, 
-Confusing Word Pairs), two remain to be built (Word Usage Errors next, 
-then Odd Word Out). Double-blank cloze and analogy pairs are 
-explicitly out of scope for a CAT-only app.
+All four formats are now live in Vocabl's Practice menu. Double-blank 
+cloze and analogy pairs are explicitly out of scope for a CAT-only app.
 
 ## Voice and tone (general app copy)
 
@@ -542,8 +587,9 @@ CAT-practice identity.
 
 ## Immediate next steps
 
-1. Complete the word bank expansion to 1000 words
-2. Build Word Usage Errors as the next Practice-menu format
+1. ~~Complete the word bank expansion to 1000 words~~ (done — 1026 words)
+2. ~~Build Word Usage Errors and Odd Word Out as the remaining 
+   Practice-menu formats~~ (done — all four formats live)
 3. Run the pre-deployment security/readiness audit
 4. Personally test the app end-to-end; recruit 2-3 private testers 
    (including Android)

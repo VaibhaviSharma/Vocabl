@@ -14,6 +14,8 @@ import MyWordsPage from './pages/MyWordsPage'
 import QuizPage from './pages/QuizPage'
 import QuizScorePage from './pages/QuizScorePage'
 import ConfusingPairsPage from './pages/ConfusingPairsPage'
+import WordUsageErrorsPage from './pages/WordUsageErrorsPage'
+import OddWordOutPage from './pages/OddWordOutPage'
 import { useAuth } from './lib/AuthContext'
 
 export default function App() {
@@ -125,6 +127,22 @@ export default function App() {
         element={
           <RequireAuth>
             <QuizScorePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/usage-errors"
+        element={
+          <RequireAuth>
+            <WordUsageErrorsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/odd-word-out"
+        element={
+          <RequireAuth>
+            <OddWordOutPage />
           </RequireAuth>
         }
       />

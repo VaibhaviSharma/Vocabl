@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 const FORMATS = [
   { label: 'Contextual closest meaning', to: '/quiz' },
   { label: 'Confusing word pairs', to: '/pairs' },
-  { label: 'Word usage errors' },
-  { label: 'Odd word out' },
+  { label: 'Word usage errors', to: '/usage-errors' },
+  { label: 'Odd word out', to: '/odd-word-out' },
 ]
 
 export default function PracticePage() {
