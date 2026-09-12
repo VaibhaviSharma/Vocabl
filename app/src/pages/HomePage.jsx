@@ -47,8 +47,8 @@ export default function HomePage() {
           </div>
           <div className="home-header-actions">
             <span className="streak-pill">🔥 {profile.streak_count}</span>
-            <Link to="/settings" className="logout-link" aria-label="Settings">
-              ⚙
+            <Link to="/settings" className="logout-link" aria-label="Settings, including log out">
+              ⋮
             </Link>
           </div>
         </div>
