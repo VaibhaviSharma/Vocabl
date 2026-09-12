@@ -10,3 +10,21 @@ export async function upsertConfusingPairStatus(userId, confusingPairId, status)
   )
   if (error) throw error
 }
+
+// Mirrors fetchWordStatuses's shape — used to power an "Only wrong"
+// category here too, same as every other format.
+export async function fetchConfusingPairStatuses(userId, filter = 'all') {
+  let query = supabase
+    .from('confusing_pair_status')
+    .select('id, confusing_pair_id, status, last_attempted_at, confusing_pairs (*)')
+    .eq('user_id', userId)
+    .order('last_attempted_at', { ascending: false })
+
+  if (filter === 'incorrect') {
+    query = query.eq('status', 'incorrect')
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return data
+}

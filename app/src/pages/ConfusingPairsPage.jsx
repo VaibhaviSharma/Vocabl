@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { fetchConfusingPairsQueue } from '../lib/confusingPairs'
-import { upsertConfusingPairStatus } from '../lib/confusingPairStatus'
+import { fetchConfusingPairStatuses, upsertConfusingPairStatus } from '../lib/confusingPairStatus'
 import { fetchProfile, saveProfile } from '../lib/userProfile'
 import { recordPracticeActivity } from '../lib/adaptiveTier'
 import { logEvent } from '../lib/userEvents'
@@ -27,7 +27,7 @@ function buildOptions(pair) {
 export default function ConfusingPairsPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [step, setStep] = useState('intro') // 'intro' | 'loading' | 'playing' | 'complete'
+  const [step, setStep] = useState('category') // 'category' | 'loading' | 'empty' | 'playing' | 'complete'
   const [queue, setQueue] = useState([])
   const [index, setIndex] = useState(0)
   const [options, setOptions] = useState([])
@@ -65,12 +65,19 @@ export default function ConfusingPairsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function startSession() {
+  async function startSession(category) {
     setStep('loading')
-    const [pairs, p] = await Promise.all([fetchConfusingPairsQueue(SESSION_LENGTH), fetchProfile(user.id)])
+    const [pairs, p] = await Promise.all([
+      category === 'wrong_only'
+        ? fetchConfusingPairStatuses(user.id, 'incorrect').then((rows) =>
+            shuffle(rows.map((r) => r.confusing_pairs))
+          )
+        : fetchConfusingPairsQueue(SESSION_LENGTH),
+      fetchProfile(user.id),
+    ])
     profileRef.current = p
     if (pairs.length === 0) {
-      setStep('intro')
+      setStep('empty')
       return
     }
     setQueue(pairs)
@@ -82,7 +89,7 @@ export default function ConfusingPairsPage() {
     sessionStartedRef.current = true
     savedRef.current = false
     setStep('playing')
-    logEvent(user.id, 'confusing_pairs_started', { session_length: pairs.length })
+    logEvent(user.id, 'confusing_pairs_started', { category, session_length: pairs.length })
   }
 
   function handleSelect(option) {
@@ -133,16 +140,30 @@ export default function ConfusingPairsPage() {
           </button>
         </div>
 
-        {step === 'intro' && (
+        {step === 'category' && (
           <div className="category-choice">
             <p>Two words, one blank — pick the one that actually fits.</p>
-            <button type="button" className="btn btn-primary" onClick={startSession}>
-              Start
+            <button type="button" className="btn btn-secondary" onClick={() => startSession('all')}>
+              All pairs
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={() => startSession('wrong_only')}>
+              Only wrong
             </button>
           </div>
         )}
 
         {step === 'loading' && <div className="loading-state">Loading…</div>}
+
+        {step === 'empty' && (
+          <div className="empty-state">
+            No pairs match that category yet.
+            <div className="reveal-actions">
+              <button type="button" className="btn btn-primary" onClick={() => navigate('/practice')}>
+                Back to Practice
+              </button>
+            </div>
+          </div>
+        )}
 
         {step === 'playing' && current && (
           <>
@@ -191,7 +212,7 @@ export default function ConfusingPairsPage() {
               {correctCount}/{results.length} correct
             </p>
             <div className="reveal-actions">
-              <button type="button" className="btn btn-primary" onClick={startSession}>
+              <button type="button" className="btn btn-primary" onClick={() => startSession('all')}>
                 Play again
               </button>
               <button type="button" className="btn btn-secondary" onClick={() => navigate('/practice')}>

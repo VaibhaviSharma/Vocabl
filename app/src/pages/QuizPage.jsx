@@ -199,7 +199,7 @@ export default function QuizPage() {
 
         {step === 'category' && (
           <div className="category-choice">
-            <p>What should this quiz cover?</p>
+            <p>A sentence with a word blanked out — pick the word that best completes it.</p>
             <button type="button" className="btn btn-secondary" onClick={() => startQuiz('all')}>
               All words
             </button>

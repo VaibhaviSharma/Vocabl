@@ -23,13 +23,41 @@ export async function fetchEligibleClusters() {
   return [...clusterById.values()].filter((c) => c.members.length >= MIN_MEMBERS_TO_USE)
 }
 
+function pickClusterForTier(candidateClusters, targetTier) {
+  const sorted = [...candidateClusters].sort((a, b) => {
+    const avgA = a.members.reduce((sum, w) => sum + w.tier, 0) / a.members.length
+    const avgB = b.members.reduce((sum, w) => sum + w.tier, 0) / b.members.length
+    return Math.abs(avgA - targetTier) - Math.abs(avgB - targetTier)
+  })
+  const closest = sorted.slice(0, Math.min(ODD_WORD_CANDIDATE_POOL, sorted.length))
+  return closest[Math.floor(Math.random() * closest.length)]
+}
+
 // Picks a cluster, takes 3 of its members, and picks a 4th "odd" word from
 // a different cluster — chosen from a small pool of the closest-tier
 // candidates (not always the single closest) so the odd word isn't
 // guessable purely by being obviously harder/easier than the other three.
+//
 // `excludeClusterIds` lets a session avoid repeating the same cluster's
-// theme back-to-back.
-export function buildOddWordOutQuestion(clusters, excludeClusterIds = []) {
+// theme back-to-back. `forcedOddWord` powers the "Only wrong" category —
+// instead of picking the odd word at random, it's pinned to a specific
+// word the user previously got wrong (from user_word_status), and a
+// tier-matched cluster is chosen around it instead.
+export function buildOddWordOutQuestion(clusters, { excludeClusterIds = [], forcedOddWord = null } = {}) {
+  if (forcedOddWord) {
+    const memberClusterIds = new Set(
+      clusters.filter((c) => c.members.some((m) => m.id === forcedOddWord.id)).map((c) => c.id)
+    )
+    const candidateClusters = clusters.filter((c) => !memberClusterIds.has(c.id))
+    if (candidateClusters.length === 0) return null
+
+    const cluster = pickClusterForTier(candidateClusters, forcedOddWord.tier)
+    const three = shuffle(cluster.members).slice(0, 3)
+    const options = shuffle([...three.map((w) => ({ ...w, isOdd: false })), { ...forcedOddWord, isOdd: true }])
+
+    return { clusterId: cluster.id, theme: cluster.theme, options, oddWord: forcedOddWord }
+  }
+
   if (clusters.length < 2) return null
 
   const excluded = new Set(excludeClusterIds)

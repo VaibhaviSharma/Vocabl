@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { fetchEligibleClusters, buildOddWordOutQuestion } from '../lib/wordClusters'
-import { upsertWordStatus } from '../lib/wordStatus'
+import { fetchWordStatuses, upsertWordStatus } from '../lib/wordStatus'
 import { fetchProfile, saveProfile } from '../lib/userProfile'
 import { recordPracticeActivity } from '../lib/adaptiveTier'
 import { logEvent } from '../lib/userEvents'
+import { shuffle } from '../lib/shuffle'
 import { PRACTICE_TYPES } from '../lib/practiceTypes'
 
 const SESSION_LENGTH = 10
@@ -17,17 +18,26 @@ const PRACTICE_TYPE = PRACTICE_TYPES.ODD_WORD_OUT
 // members + 1 odd word from a different cluster. Correctness is tracked
 // against the odd word's word_id in user_word_status, scoped to this
 // practice_type.
+//
+// "Only wrong" pins the odd word to one the user previously got wrong
+// (forcedWordsRef) instead of picking it at random each round — the
+// cluster of 3 is still chosen fresh, tier-matched around that word.
 export default function OddWordOutPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [step, setStep] = useState('intro') // 'intro' | 'loading' | 'empty' | 'playing' | 'complete'
+  const [step, setStep] = useState('category') // 'category' | 'loading' | 'empty' | 'playing' | 'complete'
   const [round, setRound] = useState(0)
+  const [totalRounds, setTotalRounds] = useState(SESSION_LENGTH)
   const [question, setQuestion] = useState(null)
   const [selected, setSelected] = useState(null)
   const [results, setResults] = useState([])
 
   const clustersRef = useRef([])
   const usedClusterIdsRef = useRef([])
+  // Empty in "All" mode (buildOddWordOutQuestion picks the odd word at
+  // random each round); a shuffled list of previously-wrong word rows in
+  // "Only wrong" mode, one consumed per round.
+  const forcedWordsRef = useRef([])
   const sessionStartedRef = useRef(false)
   const savedRef = useRef(false)
   const resultsRef = useRef([])
@@ -54,8 +64,12 @@ export default function OddWordOutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function nextQuestion() {
-    const q = buildOddWordOutQuestion(clustersRef.current, usedClusterIdsRef.current)
+  function nextQuestion(roundIndex) {
+    const forcedOddWord = forcedWordsRef.current[roundIndex] ?? null
+    const q = buildOddWordOutQuestion(clustersRef.current, {
+      excludeClusterIds: usedClusterIdsRef.current,
+      forcedOddWord,
+    })
     if (!q) return null
     usedClusterIdsRef.current = [...usedClusterIdsRef.current, q.clusterId].slice(-3)
     setQuestion(q)
@@ -63,22 +77,32 @@ export default function OddWordOutPage() {
     return q
   }
 
-  async function startSession() {
+  async function startSession(category) {
     setStep('loading')
-    const [clusters, p] = await Promise.all([fetchEligibleClusters(), fetchProfile(user.id)])
+    const [clusters, p, wrongWords] = await Promise.all([
+      fetchEligibleClusters(),
+      fetchProfile(user.id),
+      category === 'wrong_only'
+        ? fetchWordStatuses(user.id, PRACTICE_TYPE, 'incorrect').then((rows) => shuffle(rows.map((r) => r.words)))
+        : Promise.resolve([]),
+    ])
     clustersRef.current = clusters
     profileRef.current = p
 
-    if (clusters.length < 2) {
+    if (clusters.length < 2 || (category === 'wrong_only' && wrongWords.length === 0)) {
       setStep('empty')
       return
     }
+
+    forcedWordsRef.current = category === 'wrong_only' ? wrongWords.slice(0, SESSION_LENGTH) : []
+    const total = category === 'wrong_only' ? forcedWordsRef.current.length : SESSION_LENGTH
+    setTotalRounds(total)
 
     usedClusterIdsRef.current = []
     setRound(0)
     setResults([])
     resultsRef.current = []
-    const q = nextQuestion()
+    const q = nextQuestion(0)
     if (!q) {
       setStep('empty')
       return
@@ -86,7 +110,7 @@ export default function OddWordOutPage() {
     sessionStartedRef.current = true
     savedRef.current = false
     setStep('playing')
-    logEvent(user.id, 'odd_word_out_started', { session_length: SESSION_LENGTH })
+    logEvent(user.id, 'odd_word_out_started', { category, session_length: total })
   }
 
   function handleSelect(option) {
@@ -107,12 +131,12 @@ export default function OddWordOutPage() {
   async function handleNext() {
     if (pendingUpdateRef.current) await pendingUpdateRef.current
     const nextRound = round + 1
-    if (nextRound >= SESSION_LENGTH) {
+    if (nextRound >= totalRounds) {
       endSession('odd_word_out_completed')
       setStep('complete')
       return
     }
-    const q = nextQuestion()
+    const q = nextQuestion(nextRound)
     if (!q) {
       endSession('odd_word_out_completed')
       setStep('complete')
@@ -138,11 +162,14 @@ export default function OddWordOutPage() {
           </button>
         </div>
 
-        {step === 'intro' && (
+        {step === 'category' && (
           <div className="category-choice">
-            <p>Three of these words share a meaning. Pick the one that doesn't fit.</p>
-            <button type="button" className="btn btn-primary" onClick={startSession}>
-              Start
+            <p>Four words, three sharing a meaning — pick the one that doesn't fit.</p>
+            <button type="button" className="btn btn-secondary" onClick={() => startSession('all')}>
+              All words
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={() => startSession('wrong_only')}>
+              Only wrong
             </button>
           </div>
         )}
@@ -151,7 +178,7 @@ export default function OddWordOutPage() {
 
         {step === 'empty' && (
           <div className="empty-state">
-            Not enough clustered words yet to play this format.
+            No words match that category yet.
             <div className="reveal-actions">
               <button type="button" className="btn btn-primary" onClick={() => navigate('/practice')}>
                 Back to Practice
@@ -206,7 +233,7 @@ export default function OddWordOutPage() {
                   </>
                 )}
                 <button type="button" className="btn btn-primary" onClick={handleNext}>
-                  {round + 1 >= SESSION_LENGTH ? 'Finish' : 'Next'}
+                  {round + 1 >= totalRounds ? 'Finish' : 'Next'}
                 </button>
               </>
             )}
@@ -220,7 +247,7 @@ export default function OddWordOutPage() {
               {correctCount}/{results.length} correct
             </p>
             <div className="reveal-actions">
-              <button type="button" className="btn btn-primary" onClick={startSession}>
+              <button type="button" className="btn btn-primary" onClick={() => startSession('all')}>
                 Play again
               </button>
               <button type="button" className="btn btn-secondary" onClick={() => navigate('/practice')}>
